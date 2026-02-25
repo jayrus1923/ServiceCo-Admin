@@ -3,9 +3,6 @@ session_start();
 
 $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'manual';
 
-// ============================================
-// FETCH DRIVERS FROM FIREBASE
-// ============================================
 function fetchDriversFromFirebase() {
     $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/Drivers.json";
     
@@ -24,97 +21,43 @@ function fetchDriversFromFirebase() {
     return [];
 }
 
-// ============================================
-// ✅ UPDATE DRIVER TRICYCLE DETAILS
-// ============================================
-function updateDriverTricycle($driverId, $tricycleData) {
-    $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/Drivers/{$driverId}.json";
+function fetchTricycleInfoFromFirebase() {
+    $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/TricycleInfo.json";
     
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    
     $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     
-    if ($response) {
-        $driverData = json_decode($response, true);
-        
-        // Update only tricycle-related fields
-        $driverData['PlateNumber'] = $tricycleData['plate_number'];
-        $driverData['VehicleModel'] = $tricycleData['model'];
-        $driverData['VehicleColor'] = $tricycleData['color'];
-        $driverData['ORCRNumber'] = $tricycleData['or_cr_number'];
-        $driverData['LicenseNumber'] = $tricycleData['license_number'];
-        $driverData['LicenseExpiry'] = $tricycleData['expiry_date'];
-        $driverData['BodyType'] = $tricycleData['body_type'];
-        $driverData['PassengerCapacity'] = $tricycleData['passenger_capacity'];
-        $driverData['YearManufactured'] = $tricycleData['year_manufactured'];
-        $driverData['LastUpdated'] = date('c');
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($driverData));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        return $httpCode == 200;
+    if ($httpCode == 200 && $response) {
+        return json_decode($response, true) ?: [];
     }
-    return false;
+    return [];
 }
 
-// ============================================
-// ✅ APPROVE DRIVER
-// ============================================
-function approveDriver($driverId) {
-    $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/Drivers/{$driverId}.json";
+function fetchReuploadDocumentsFromFirebase() {
+    $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/ReuploadDocuments.json";
     
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    
     $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     
-    if ($response) {
-        $driverData = json_decode($response, true);
-        
-        $driverData['DocumentStatus'] = 'Approved';
-        $driverData['RegistrationCompleted'] = true;
-        $driverData['AccountStatus'] = 'Active';
-        $driverData['LastUpdated'] = date('c');
-        $driverData['ApprovedDate'] = date('c');
-        unset($driverData['RejectionReason']);
-        unset($driverData['DeactivationReason']);
-        unset($driverData['SuspendedUntil']);
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($driverData));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        return $httpCode == 200;
+    if ($httpCode == 200 && $response) {
+        return json_decode($response, true) ?: [];
     }
-    return false;
+    return [];
 }
 
-// ============================================
-// ✅ REJECT DRIVER
-// ============================================
-function rejectDriver($driverId, $reason) {
+function rejectDriver($driverId, $reason, $rejectedDocuments = []) {
     $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/Drivers/{$driverId}.json";
     
     $ch = curl_init();
@@ -133,6 +76,13 @@ function rejectDriver($driverId, $reason) {
         $driverData['RejectionReason'] = $reason;
         $driverData['RejectedDate'] = date('c');
         $driverData['LastUpdated'] = date('c');
+        $driverData['Status'] = 'Offline';
+        $driverData['RejectedDocuments'] = is_array($rejectedDocuments) ? array_values($rejectedDocuments) : [];
+        
+        unset($driverData['DeactivationReason']);
+        unset($driverData['SuspendedUntil']);
+        unset($driverData['SuspensionReason']);
+        unset($driverData['ReactivationReason']);
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
@@ -151,9 +101,122 @@ function rejectDriver($driverId, $reason) {
     return false;
 }
 
-// ============================================
-// ✅ DEACTIVATE DRIVER (WITH REASON)
-// ============================================
+function approveDriver($driverId) {
+    $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/Drivers/{$driverId}.json";
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    if ($response) {
+        $driverData = json_decode($response, true);
+        
+        $driverData['DocumentStatus'] = 'Approved';
+        $driverData['RegistrationCompleted'] = true;
+        $driverData['AccountStatus'] = 'Active';
+        $driverData['LastUpdated'] = date('c');
+        $driverData['ApprovedDate'] = date('c');
+        $driverData['Status'] = 'Offline';
+        unset($driverData['RejectionReason']);
+        unset($driverData['RejectedDocuments']);
+        unset($driverData['RejectedDocumentUrls']);
+        unset($driverData['DeactivationReason']);
+        unset($driverData['SuspendedUntil']);
+        unset($driverData['SuspensionReason']);
+        unset($driverData['ReactivationReason']);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($driverData));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        return $httpCode == 200;
+    }
+    return false;
+}
+
+function approveTricycle($driverId) {
+    $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/TricycleInfo/{$driverId}.json";
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    if ($response) {
+        $tricycleData = json_decode($response, true);
+        
+        if ($tricycleData) {
+            $tricycleData['TricycleStatus'] = 'Approved';
+            $tricycleData['UpdatedAt'] = date('c');
+            $tricycleData['RejectionReason'] = '';
+            
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($tricycleData));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            return $httpCode == 200;
+        }
+    }
+    return false;
+}
+
+function rejectTricycle($driverId, $reason) {
+    $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/TricycleInfo/{$driverId}.json";
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    if ($response) {
+        $tricycleData = json_decode($response, true);
+        
+        if ($tricycleData) {
+            $tricycleData['TricycleStatus'] = 'Rejected';
+            $tricycleData['UpdatedAt'] = date('c');
+            $tricycleData['RejectionReason'] = $reason;
+            
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($tricycleData));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            return $httpCode == 200;
+        }
+    }
+    return false;
+}
+
 function deactivateDriver($driverId, $reason) {
     $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/Drivers/{$driverId}.json";
     
@@ -173,6 +236,8 @@ function deactivateDriver($driverId, $reason) {
         $driverData['DeactivatedDate'] = date('c');
         $driverData['LastUpdated'] = date('c');
         unset($driverData['SuspendedUntil']);
+        unset($driverData['SuspensionReason']);
+        unset($driverData['ReactivationReason']);
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
@@ -191,10 +256,7 @@ function deactivateDriver($driverId, $reason) {
     return false;
 }
 
-// ============================================
-// ✅ SUSPEND DRIVER (WITH DATE)
-// ============================================
-function suspendDriver($driverId, $suspendUntil) {
+function suspendDriver($driverId, $suspendUntil, $reason) {
     $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/Drivers/{$driverId}.json";
     
     $ch = curl_init();
@@ -209,9 +271,12 @@ function suspendDriver($driverId, $suspendUntil) {
         
         $driverData['AccountStatus'] = 'Suspended';
         $driverData['Status'] = 'Offline';
+        $driverData['SuspensionReason'] = $reason;
         $driverData['SuspendedUntil'] = $suspendUntil;
         $driverData['SuspendedDate'] = date('c');
         $driverData['LastUpdated'] = date('c');
+        unset($driverData['DeactivationReason']);
+        unset($driverData['ReactivationReason']);
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
@@ -230,10 +295,7 @@ function suspendDriver($driverId, $suspendUntil) {
     return false;
 }
 
-// ============================================
-// ✅ REACTIVATE DRIVER
-// ============================================
-function reactivateDriver($driverId) {
+function reactivateDriver($driverId, $reason) {
     $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/Drivers/{$driverId}.json";
     
     $ch = curl_init();
@@ -247,11 +309,15 @@ function reactivateDriver($driverId) {
         $driverData = json_decode($response, true);
         
         $driverData['AccountStatus'] = 'Active';
+        $driverData['ReactivationReason'] = $reason;
+        $driverData['ReactivationDate'] = date('c');
         $driverData['LastUpdated'] = date('c');
+        $driverData['Status'] = 'Offline';
         unset($driverData['DeactivationReason']);
         unset($driverData['DeactivatedDate']);
         unset($driverData['SuspendedUntil']);
         unset($driverData['SuspendedDate']);
+        unset($driverData['SuspensionReason']);
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
@@ -270,9 +336,139 @@ function reactivateDriver($driverId) {
     return false;
 }
 
-// ============================================
-// HANDLE POST REQUESTS
-// ============================================
+function approveSingleDocument($driverId, $documentKey, $documentUrl) {
+    $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/Drivers/{$driverId}.json";
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    if ($response) {
+        $driverData = json_decode($response, true);
+        
+        if (!$driverData) return false;
+        
+        if (!isset($driverData['Documents'])) {
+            $driverData['Documents'] = [];
+        }
+        
+        $driverData['Documents'][$documentKey] = $documentUrl;
+        
+        if (isset($driverData['RejectedDocuments']) && is_array($driverData['RejectedDocuments'])) {
+            $driverData['RejectedDocuments'] = array_values(array_filter($driverData['RejectedDocuments'], function($doc) use ($documentKey) {
+                return $doc !== $documentKey;
+            }));
+        }
+        
+        if (isset($driverData['RejectedDocumentUrls']) && is_array($driverData['RejectedDocumentUrls'])) {
+            unset($driverData['RejectedDocumentUrls'][$documentKey]);
+        }
+        
+        $driverData['LastUpdated'] = date('c');
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($driverData));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        return $httpCode == 200;
+    }
+    return false;
+}
+
+function approveAllDocuments($driverId, $reuploadedDocs) {
+    $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/Drivers/{$driverId}.json";
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    if ($response) {
+        $driverData = json_decode($response, true);
+        
+        if (!$driverData) return false;
+        
+        if (!isset($driverData['Documents'])) {
+            $driverData['Documents'] = [];
+        }
+        
+        foreach ($reuploadedDocs as $docKey => $docUrl) {
+            $driverData['Documents'][$docKey] = $docUrl;
+        }
+        
+        $driverData['RejectedDocuments'] = [];
+        $driverData['RejectedDocumentUrls'] = [];
+        $driverData['LastUpdated'] = date('c');
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($driverData));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        return $httpCode == 200;
+    }
+    return false;
+}
+
+function updateDocumentStatus($driverId, $rejectedDocs, $reuploadedUrls) {
+    $firebaseUrl = "https://serviceco-37c60-default-rtdb.firebaseio.com/Drivers/{$driverId}.json";
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    if ($response) {
+        $driverData = json_decode($response, true);
+        
+        $updateData = [
+            'DocumentStatus' => 'Pending Review',
+            'RejectedDocuments' => array_values($rejectedDocs),
+            'RejectedDocumentUrls' => (object)$reuploadedUrls,
+            'LastUpdated' => date('c')
+        ];
+        
+        $updatedData = array_merge($driverData, $updateData);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $firebaseUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($updatedData));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        return $httpCode == 200;
+    }
+    return false;
+}
+
 $actionResult = null;
 $rejectionReason = '';
 $activeTab = 'applicationTab';
@@ -294,10 +490,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
         } elseif ($action === 'reject') {
             $rejectionReason = $_POST['rejection_reason'] ?? 'Incomplete or invalid documents';
-            $success = rejectDriver($driverId, $rejectionReason);
+            
+            $rejectedDocuments = [];
+            if (isset($_POST['rejected_documents']) && !empty($_POST['rejected_documents'])) {
+                $decoded = json_decode($_POST['rejected_documents'], true);
+                $rejectedDocuments = is_array($decoded) ? $decoded : [];
+            }
+            
+            $success = rejectDriver($driverId, $rejectionReason, $rejectedDocuments);
             $actionResult = [
                 'success' => $success,
                 'message' => $success ? "Driver {$driverName} has been rejected." : "Failed to reject driver."
+            ];
+            if ($success) echo "<meta http-equiv='refresh' content='1;url=?tab={$activeTab}'>";
+            
+        } elseif ($action === 'approve_tricycle') {
+            $success = approveTricycle($driverId);
+            $actionResult = [
+                'success' => $success,
+                'message' => $success ? "Tricycle for {$driverName} has been approved!" : "Failed to approve tricycle."
+            ];
+            if ($success) echo "<meta http-equiv='refresh' content='1;url=?tab={$activeTab}'>";
+            
+        } elseif ($action === 'reject_tricycle') {
+            $rejectionReason = $_POST['rejection_reason'] ?? 'Tricycle information incomplete or invalid';
+            $success = rejectTricycle($driverId, $rejectionReason);
+            $actionResult = [
+                'success' => $success,
+                'message' => $success ? "Tricycle for {$driverName} has been rejected." : "Failed to reject tricycle."
             ];
             if ($success) echo "<meta http-equiv='refresh' content='1;url=?tab={$activeTab}'>";
             
@@ -312,7 +532,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
         } elseif ($action === 'suspend') {
             $suspendUntil = $_POST['suspend_until'] ?? date('c', strtotime('+7 days'));
-            $success = suspendDriver($driverId, $suspendUntil);
+            $suspendReason = $_POST['suspend_reason'] ?? 'No reason provided';
+            $success = suspendDriver($driverId, $suspendUntil, $suspendReason);
             $actionResult = [
                 'success' => $success,
                 'message' => $success ? "Driver {$driverName} has been suspended until " . date('M j, Y', strtotime($suspendUntil)) : "Failed to suspend driver."
@@ -320,42 +541,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($success) echo "<meta http-equiv='refresh' content='1;url=?tab={$activeTab}'>";
             
         } elseif ($action === 'reactivate') {
-            $success = reactivateDriver($driverId);
+            $reactivationReason = $_POST['reactivation_reason'] ?? 'Account reactivated by admin';
+            $success = reactivateDriver($driverId, $reactivationReason);
             $actionResult = [
                 'success' => $success,
                 'message' => $success ? "Driver {$driverName} has been reactivated." : "Failed to reactivate driver."
             ];
             if ($success) echo "<meta http-equiv='refresh' content='1;url=?tab={$activeTab}'>";
             
-        } elseif ($action === 'update_tricycle') {
-            $tricycleData = [
-                'plate_number' => $_POST['plate_number'] ?? 'Not Specified',
-                'model' => $_POST['model'] ?? 'Not Specified',
-                'color' => $_POST['color'] ?? 'Not Specified',
-                'or_cr_number' => $_POST['or_cr_number'] ?? 'Not Specified',
-                'license_number' => $_POST['license_number'] ?? 'Not Specified',
-                'expiry_date' => $_POST['expiry_date'] ?? 'Not Specified',
-                'body_type' => $_POST['body_type'] ?? 'Not Specified',
-                'passenger_capacity' => $_POST['passenger_capacity'] ?? 'Not Specified',
-                'year_manufactured' => $_POST['year_manufactured'] ?? 'Not Specified'
-            ];
-            $success = updateDriverTricycle($driverId, $tricycleData);
+        } elseif ($action === 'approve_single_document') {
+            $documentKey = $_POST['document_key'] ?? '';
+            $documentUrl = $_POST['document_url'] ?? '';
+            $success = approveSingleDocument($driverId, $documentKey, $documentUrl);
             $actionResult = [
                 'success' => $success,
-                'message' => $success ? "Driver {$driverName}'s tricycle details have been updated!" : "Failed to update tricycle details."
+                'message' => $success ? "Document {$documentKey} has been approved!" : "Failed to approve document."
+            ];
+            if ($success) echo "<meta http-equiv='refresh' content='1;url=?tab={$activeTab}'>";
+            
+        } elseif ($action === 'approve_all_documents') {
+            $reuploadedDocsJson = $_POST['reuploaded_docs'] ?? '{}';
+            $reuploadedDocs = json_decode($reuploadedDocsJson, true);
+            $success = approveAllDocuments($driverId, $reuploadedDocs);
+            $actionResult = [
+                'success' => $success,
+                'message' => $success ? "All documents have been approved!" : "Failed to approve documents."
             ];
             if ($success) echo "<meta http-equiv='refresh' content='1;url=?tab={$activeTab}'>";
         }
     }
 }
 
-// Get active tab from URL parameter
 $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'applicationTab';
 
-// Get drivers from Firebase
 $firebaseDrivers = fetchDriversFromFirebase();
+$tricycleInfos = fetchTricycleInfoFromFirebase();
+$reuploadDocs = fetchReuploadDocumentsFromFirebase();
 
-// Process drivers
 $driverApplications = [];
 $driverMonitoring = [];
 $pendingCount = 0;
@@ -364,6 +586,15 @@ $rejectedCount = 0;
 $activeCount = 0;
 $suspendedCount = 0;
 $deactivatedCount = 0;
+$onlineCount = 0;
+$tricyclePendingCount = 0;
+$tricycleApprovedCount = 0;
+$tricycleRejectedCount = 0;
+
+$colorOptions = ["Red", "Blue", "Black", "White", "Silver", "Gray", "Green", "Yellow", "Orange", "Brown", "Purple", "Pink", "Cyan", "Teal", "Lime", "Gold", "Maroon", "Navy", "Other"];
+$yearOptions = ["2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016", "2015", "2014", "2013", "2012", "2011", "2010", "2009", "2008", "2007", "2006", "2005", "2004", "2003", "2002", "2001", "2000", "1999", "1998", "1997", "1996", "1995", "Older"];
+$capacityOptions = ["1-2 seater", "3-4 seater"];
+$statusOptions = ["Active", "Inactive", "Under Maintenance", "For Repair"];
 
 if (!empty($firebaseDrivers)) {
     foreach ($firebaseDrivers as $driverId => $driver) {
@@ -403,6 +634,16 @@ if (!empty($firebaseDrivers)) {
         $docStatus = $driver['DocumentStatus'] ?? 'Pending';
         $rejectionReason = $driver['RejectionReason'] ?? '';
         
+        $rejectedDocuments = $driver['RejectedDocuments'] ?? [];
+        if (!is_array($rejectedDocuments)) {
+            $rejectedDocuments = [];
+        }
+        
+        $rejectedDocumentUrls = $driver['RejectedDocumentUrls'] ?? [];
+        if (!is_array($rejectedDocumentUrls)) {
+            $rejectedDocumentUrls = [];
+        }
+        
         if ($docStatus == 'Approved') {
             $docStatusClass = 'approved';
             $approvedCount++;
@@ -419,6 +660,20 @@ if (!empty($firebaseDrivers)) {
         elseif ($accountStatus == 'Suspended') $suspendedCount++;
         elseif ($accountStatus == 'Deactivated') $deactivatedCount++;
         
+        if ($status == 'Online') $onlineCount++;
+        
+        $tricycleData = $tricycleInfos[$driverId] ?? [];
+        $tricycleStatus = $tricycleData['TricycleStatus'] ?? 'Pending';
+        $tricycleRejectionReason = $tricycleData['RejectionReason'] ?? '';
+        
+        if ($tricycleStatus == 'Approved') {
+            $tricycleApprovedCount++;
+        } elseif ($tricycleStatus == 'Rejected') {
+            $tricycleRejectedCount++;
+        } else {
+            $tricyclePendingCount++;
+        }
+        
         $documents = $driver['Documents'] ?? [];
         $cleanDocuments = [];
         if (is_array($documents)) {
@@ -429,19 +684,6 @@ if (!empty($firebaseDrivers)) {
         
         $profileImageUrl = $driver['ProfileImageUrl'] ?? '';
         
-        // ✅ TRICYCLE DETAILS - WITH DEFAULT VALUES
-        $tricycleDetails = [
-            'plate_number' => !empty($driver['PlateNumber']) ? $driver['PlateNumber'] : ($driver['VehiclePlateNumber'] ?? 'Not Specified'),
-            'model' => !empty($driver['VehicleModel']) ? $driver['VehicleModel'] : 'Not Specified',
-            'color' => !empty($driver['VehicleColor']) ? $driver['VehicleColor'] : 'Not Specified',
-            'or_cr_number' => !empty($driver['ORCRNumber']) ? $driver['ORCRNumber'] : 'Not Specified',
-            'license_number' => !empty($driver['LicenseNumber']) ? $driver['LicenseNumber'] : 'Not Specified',
-            'expiry_date' => !empty($driver['LicenseExpiry']) ? $driver['LicenseExpiry'] : 'Not Specified',
-            'body_type' => !empty($driver['BodyType']) ? $driver['BodyType'] : 'Not Specified',
-            'passenger_capacity' => !empty($driver['PassengerCapacity']) ? $driver['PassengerCapacity'] : 'Not Specified',
-            'year_manufactured' => !empty($driver['YearManufactured']) ? $driver['YearManufactured'] : 'Not Specified'
-        ];
-        
         $suspendedUntil = '';
         if (!empty($driver['SuspendedUntil'])) {
             try {
@@ -451,7 +693,9 @@ if (!empty($firebaseDrivers)) {
             }
         }
         
+        $suspensionReason = $driver['SuspensionReason'] ?? '';
         $deactivationReason = $driver['DeactivationReason'] ?? '';
+        $reactivationReason = $driver['ReactivationReason'] ?? '';
         
         $driverApplications[] = [
             'driver_id' => $driverId,
@@ -464,6 +708,8 @@ if (!empty($firebaseDrivers)) {
             'doc_status' => $docStatus,
             'doc_status_class' => $docStatusClass,
             'rejection_reason' => $rejectionReason,
+            'rejected_documents' => $rejectedDocuments,
+            'rejected_document_urls' => $rejectedDocumentUrls,
             'email' => !empty($driver['Email']) ? $driver['Email'] : 'Not Specified',
             'phone' => !empty($driver['MobileNumber']) ? $driver['MobileNumber'] : 'Not Specified',
             'vehicle_type' => $driver['VehicleType'] ?? 'Tricycle',
@@ -478,7 +724,15 @@ if (!empty($firebaseDrivers)) {
             'joined_date' => !empty($driver['RegistrationDate']) ? 
                 date('M j, Y', strtotime($driver['RegistrationDate'])) : 
                 (isset($driver['CreatedAt']) ? date('M j, Y', strtotime($driver['CreatedAt'])) : 'Unknown'),
-            'tricycle' => $tricycleDetails
+            'tricycle_data' => $tricycleData,
+            'tricycle_status' => $tricycleStatus,
+            'tricycle_rejection_reason' => $tricycleRejectionReason,
+            'account_status' => $accountStatus,
+            'suspended_until' => $suspendedUntil,
+            'suspension_reason' => $suspensionReason,
+            'deactivation_reason' => $deactivationReason,
+            'reactivation_reason' => $reactivationReason,
+            'reupload_documents' => $reuploadDocs[$driverId] ?? []
         ];
         
         if (!empty($driver['RegistrationCompleted']) && $driver['RegistrationCompleted'] === true) {
@@ -489,8 +743,8 @@ if (!empty($firebaseDrivers)) {
                 'barangay' => $driver['Barangay'] ?? 'Not Specified',
                 'status' => $status,
                 'status_class' => $status == 'Online' ? 'active' : 'pending',
-                'account_status' => $driver['AccountStatus'] ?? 'Active',
-                'account_status_class' => strtolower($driver['AccountStatus'] ?? 'active'),
+                'account_status' => $accountStatus,
+                'account_status_class' => strtolower($accountStatus),
                 'email' => !empty($driver['Email']) ? $driver['Email'] : 'Not Specified',
                 'phone' => !empty($driver['MobileNumber']) ? $driver['MobileNumber'] : 'Not Specified',
                 'total_trips' => $driver['TotalCompletedRides'] ?? 0,
@@ -500,8 +754,14 @@ if (!empty($firebaseDrivers)) {
                     (isset($driver['CreatedAt']) ? date('M j, Y', strtotime($driver['CreatedAt'])) : 'Unknown'),
                 'profile_image' => $profileImageUrl,
                 'suspended_until' => $suspendedUntil,
+                'suspension_reason' => $suspensionReason,
                 'deactivation_reason' => $deactivationReason,
-                'tricycle' => $tricycleDetails
+                'reactivation_reason' => $reactivationReason,
+                'tricycle_data' => $tricycleData,
+                'tricycle_status' => $tricycleStatus,
+                'tricycle_rejection_reason' => $tricycleRejectionReason,
+                'doc_status' => $docStatus,
+                'reupload_documents' => $reuploadDocs[$driverId] ?? []
             ];
         }
     }
@@ -513,6 +773,26 @@ usort($driverApplications, function($a, $b) {
 
 $totalApplicants = count($driverApplications);
 $totalRegisteredDrivers = count($driverMonitoring);
+
+$documentDisplayNames = [
+    '2x2_Picture' => '2x2 ID Picture',
+    'Cedula' => 'Cedula',
+    'Barangay_Clearance' => 'Barangay Clearance',
+    'Driver\'s_License' => 'Driver\'s License',
+    'ORCR' => 'OR/CR',
+    'Plate_Number' => 'Plate Number',
+    'GCash_QR_Code' => 'GCash QR Code'
+];
+
+$documentIcons = [
+    '2x2_Picture' => 'fas fa-id-card',
+    'Cedula' => 'fas fa-file-contract',
+    'Barangay_Clearance' => 'fas fa-file-alt',
+    'Driver\'s_License' => 'fas fa-id-badge',
+    'ORCR' => 'fas fa-car',
+    'Plate_Number' => 'fas fa-image',
+    'GCash_QR_Code' => 'fas fa-qrcode'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -576,13 +856,17 @@ $totalRegisteredDrivers = count($driverMonitoring);
         .tab-content.active { display: block; }
         
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px; }
-        .stat-card { background: white; border-radius: 8px; padding: 15px; border-left: 4px solid #347433; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .stat-card { background: white; border-radius: 8px; padding: 15px; border-left: 4px solid #347433; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; transition: all 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         .stat-card.pending { border-left-color: #f59e0b; }
         .stat-card.approved { border-left-color: #347433; }
         .stat-card.rejected { border-left-color: #ef4444; }
         .stat-card.active { border-left-color: #347433; }
         .stat-card.suspended { border-left-color: #f59e0b; }
         .stat-card.deactivated { border-left-color: #6b7280; }
+        .stat-card.tricycle-pending { border-left-color: #f59e0b; }
+        .stat-card.tricycle-approved { border-left-color: #347433; }
+        .stat-card.tricycle-rejected { border-left-color: #ef4444; }
         .stat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .stat-title { font-size: 13px; color: #666; font-weight: 500; }
         .stat-icon { width: 35px; height: 35px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background-color: #f0fdf4; color: #347433; }
@@ -590,6 +874,9 @@ $totalRegisteredDrivers = count($driverMonitoring);
         .stat-card.rejected .stat-icon { background-color: #fee2e2; color: #ef4444; }
         .stat-card.suspended .stat-icon { background-color: #fef3c7; color: #f59e0b; }
         .stat-card.deactivated .stat-icon { background-color: #e5e7eb; color: #6b7280; }
+        .stat-card.tricycle-pending .stat-icon { background-color: #fef3c7; color: #f59e0b; }
+        .stat-card.tricycle-approved .stat-icon { background-color: #d1fae5; color: #347433; }
+        .stat-card.tricycle-rejected .stat-icon { background-color: #fee2e2; color: #ef4444; }
         .stat-value { font-size: 24px; font-weight: 600; color: #333; margin-bottom: 5px; }
         .stat-change { font-size: 12px; color: #666; }
         
@@ -668,7 +955,7 @@ $totalRegisteredDrivers = count($driverMonitoring);
             font-size: 12px;
         }
         
-        .data-table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        .data-table { width: 100%; border-collapse: collapse; min-width: 1200px; }
         .data-table thead { background-color: #f9fafb; border-bottom: 2px solid #eee; }
         .data-table th { padding: 12px 15px; text-align: left; font-weight: 600; color: #374151; font-size: 13px; }
         .profile-circle { width: 35px; height: 35px; border-radius: 50%; background-color: #347433; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; margin-right: 10px; float: left; }
@@ -685,6 +972,9 @@ $totalRegisteredDrivers = count($driverMonitoring);
         .status-badge.offline { background-color: #e5e7eb; color: #6b7280; }
         .status-badge.suspended { background-color: #fef3c7; color: #f59e0b; }
         .status-badge.deactivated { background-color: #e5e7eb; color: #6b7280; }
+        .status-badge.tricycle-pending { background-color: #fef3c7; color: #f59e0b; }
+        .status-badge.tricycle-approved { background-color: #d1fae5; color: #347433; }
+        .status-badge.tricycle-rejected { background-color: #fee2e2; color: #ef4444; }
         
         .action-buttons { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
         .action-btn { 
@@ -712,12 +1002,10 @@ $totalRegisteredDrivers = count($driverMonitoring);
         .action-btn.suspend:hover { background-color: #d97706; }
         .action-btn.reactivate { background-color: #347433; color: white; }
         .action-btn.reactivate:hover { background-color: #2d6a2c; }
-        .action-btn.edit { background-color: #f59e0b; color: white; }
-        .action-btn.edit:hover { background-color: #d97706; }
-        .action-btn.save { background-color: #347433; color: white; }
-        .action-btn.save:hover { background-color: #2d6a2c; }
-        .action-btn.cancel { background-color: #6b7280; color: white; }
-        .action-btn.cancel:hover { background-color: #4b5563; }
+        .action-btn.tricycle { background-color: #8b5cf6; color: white; }
+        .action-btn.tricycle:hover { background-color: #7c3aed; }
+        .action-btn.approve-doc { background-color: #2E7D32; color: white; }
+        .action-btn.approve-doc:hover { background-color: #1e5a22; }
         
         .pagination { padding: 15px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; }
         .pagination-info { font-size: 13px; color: #666; }
@@ -746,7 +1034,222 @@ $totalRegisteredDrivers = count($driverMonitoring);
         .detail-card h5 { font-size: 16px; margin-bottom: 10px; color: #333; font-weight: 600; display: flex; align-items: center; gap: 8px; }
         .detail-card p { color: #555; font-size: 14px; margin-bottom: 5px; }
         
-        /* ✅ TRICYCLE DETAILS CARD - EDITABLE WITH VALIDATION */
+        .rejected-documents-list {
+            background: #fff3f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .rejected-documents-list h5 {
+            color: #ef4444;
+            font-size: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .rejected-documents-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .rejected-documents-list li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #ffcdd2;
+            transition: background 0.2s;
+        }
+        
+        .rejected-documents-list li:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .rejected-documents-list li.has-url {
+            border-left: 4px solid #2E7D32;
+        }
+        
+        .doc-icon-small {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fee2e2;
+            color: #ef4444;
+            font-size: 16px;
+        }
+        
+        .rejected-documents-list li.has-url .doc-icon-small {
+            background-color: #e8f5e9;
+            color: #2E7D32;
+        }
+        
+        .doc-name {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .doc-status {
+            font-size: 11px;
+            color: #ef4444;
+            background: #fee2e2;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .rejected-documents-list li.has-url .doc-status {
+            background-color: #2E7D32;
+            color: white;
+        }
+        
+        .reuploaded-section {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #8b5cf6;
+        }
+        
+        .reuploaded-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .reuploaded-header h5 {
+            color: #8b5cf6;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+        }
+        
+        .reuploaded-docs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .reuploaded-doc-card {
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            border: 1px solid #e0e7ff;
+            transition: all 0.2s;
+        }
+        
+        .reuploaded-doc-card:hover {
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+            border-color: #8b5cf6;
+        }
+        
+        .reuploaded-doc-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .reuploaded-doc-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: #ede9fe;
+            color: #8b5cf6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .reuploaded-doc-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 15px;
+            flex: 1;
+        }
+        
+        .reuploaded-doc-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .reuploaded-doc-actions button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+        
+        .btn-preview {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .btn-preview:hover {
+            background-color: #2563eb;
+        }
+        
+        .btn-approve-doc {
+            background-color: #2E7D32;
+            color: white;
+        }
+        
+        .btn-approve-doc:hover {
+            background-color: #1e5a22;
+        }
+        
+        .btn-approve-all {
+            background-color: #8b5cf6;
+            color: white;
+            padding: 10px 22px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .btn-approve-all:hover {
+            background-color: #7c3aed;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+        }
+        
+        .btn-approve-all:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
         .tricycle-details { margin-top: 20px; }
         .tricycle-grid { 
             display: grid; 
@@ -772,54 +1275,134 @@ $totalRegisteredDrivers = count($driverMonitoring);
             color: #333; 
             word-break: break-word;
         }
-        .tricycle-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #347433;
-            border-radius: 4px;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        .tricycle-input:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(52, 116, 51, 0.2);
-        }
-        .tricycle-input.error {
-            border-color: #ef4444;
-            background-color: #fef2f2;
-        }
-        .edit-mode {
-            background-color: #fff9e6;
-            border: 2px solid #f59e0b;
-        }
         .not-specified {
             color: #999;
             font-style: italic;
         }
         
-        /* ✅ VALIDATION ERROR STYLES */
-        .validation-error {
-            color: #ef4444;
-            font-size: 11px;
-            margin-top: 4px;
+        .documents-section { margin-top: 30px; }
+        .documents-section h4 { 
+            font-size: 18px; 
+            margin-bottom: 20px; 
+            color: #333; 
+            padding-bottom: 10px; 
+            border-bottom: 2px solid #eee;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 10px;
         }
-        .validation-error i {
-            font-size: 10px;
+        .document-count-badge {
+            background-color: #347433;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
         }
-        
-        .documents-section { margin-top: 30px; }
-        .documents-section h4 { font-size: 18px; margin-bottom: 20px; color: #333; padding-bottom: 10px; border-bottom: 2px solid #eee; }
         .documents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .document-item { background: white; border-radius: 8px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .document-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
         .document-icon { width: 50px; height: 50px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background-color: #f0fdf4; color: #347433; font-size: 22px; }
-        .document-name { font-weight: 600; color: #333; font-size: 16px; }
-        .preview-btn { width: 100%; padding: 10px; background: #347433; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .document-name { font-weight: 600; color: #333; font-size: 16px; flex: 1; }
+        .document-status-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .document-status-badge.reuploaded {
+            background-color: #2E7D32;
+            color: white;
+        }
+        .document-status-badge.pending {
+            background-color: #f59e0b;
+            color: white;
+        }
+        .preview-btn { 
+            width: 100%; 
+            padding: 10px; 
+            background: #347433; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px; 
+        }
         .preview-btn:hover { background: #2d6a2c; }
+        .preview-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
         .preview-image { width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px; }
+        
+        .document-selection { 
+            max-height: 300px; 
+            overflow-y: auto; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 8px; 
+            padding: 10px; 
+            margin-bottom: 15px; 
+        }
+        .document-checkbox { 
+            display: flex; 
+            align-items: center; 
+            padding: 10px; 
+            border-bottom: 1px solid #f3f4f6; 
+            cursor: pointer; 
+            transition: background 0.2s; 
+        }
+        .document-checkbox:hover { background-color: #f9fafb; }
+        .document-checkbox:last-child { border-bottom: none; }
+        .document-checkbox input[type="checkbox"] { 
+            width: 18px; 
+            height: 18px; 
+            margin-right: 12px; 
+            accent-color: #ef4444; 
+            cursor: pointer; 
+        }
+        .document-checkbox label { 
+            font-size: 14px; 
+            color: #333; 
+            cursor: pointer; 
+            flex: 1; 
+        }
+        .document-checkbox small { 
+            font-size: 11px; 
+            color: #999; 
+            margin-left: 10px; 
+        }
+        .select-all-container { 
+            background-color: #f9fafb; 
+            padding: 12px; 
+            border-radius: 6px; 
+            margin-bottom: 15px; 
+            display: flex; 
+            align-items: center; 
+        }
+        .select-all-container input[type="checkbox"] { 
+            width: 18px; 
+            height: 18px; 
+            margin-right: 10px; 
+            accent-color: #ef4444; 
+            cursor: pointer; 
+        }
+        .select-all-container label { 
+            font-weight: 600; 
+            font-size: 14px; 
+            color: #333; 
+            cursor: pointer; 
+        }
+        .selection-info { 
+            font-size: 12px; 
+            color: #666; 
+            margin-top: 8px; 
+            text-align: right; 
+        }
         
         .btn { padding: 10px 22px; border-radius: 6px; font-weight: 500; cursor: pointer; border: none; font-size: 15px; transition: all 0.2s; }
         .btn-primary { background: #347433; color: white; }
@@ -830,6 +1413,10 @@ $totalRegisteredDrivers = count($driverMonitoring);
         .btn-danger:hover { background-color: #dc2626; transform: translateY(-2px); }
         .btn-warning { background-color: #f59e0b; color: white; }
         .btn-warning:hover { background-color: #d97706; transform: translateY(-2px); }
+        .btn-success { background-color: #2E7D32; color: white; }
+        .btn-success:hover { background-color: #1e5a22; transform: translateY(-2px); }
+        .btn-purple { background-color: #8b5cf6; color: white; }
+        .btn-purple:hover { background-color: #7c3aed; transform: translateY(-2px); }
         
         .rejection-reason { background: #fee2e2; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #ef4444; }
         .rejection-reason h5 { color: #ef4444; margin-bottom: 8px; }
@@ -875,6 +1462,122 @@ $totalRegisteredDrivers = count($driverMonitoring);
         .success-message { background-color: #347433; }
         .error-message-toast { background-color: #ef4444; }
         
+        .reupload-history-section {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #8b5cf6;
+        }
+        
+        .reupload-history-section h5 {
+            color: #8b5cf6;
+            font-size: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .reupload-history-item {
+            background: white;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid #e0e7ff;
+        }
+        
+        .reupload-date {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+        
+        .reupload-docs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .reupload-doc-tag {
+            background: #ede9fe;
+            color: #8b5cf6;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        
+        .reupload-doc-tag:hover {
+            background: #8b5cf6;
+            color: white;
+        }
+        
+        .driver-approval-panel {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0fdf4;
+            border-radius: 8px;
+            border: 2px solid #347433;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .driver-approval-panel h4 {
+            color: #347433;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .driver-approval-panel p {
+            color: #555;
+            margin-top: 5px;
+        }
+        
+        .driver-approval-panel button {
+            background: #347433;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        
+        .driver-approval-panel button:hover {
+            background: #2d6a2c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 116, 51, 0.3);
+        }
+        
+        .document-approve-btn {
+            margin-top: 10px;
+            background-color: #2E7D32;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            width: 100%;
+        }
+        
+        .document-approve-btn:hover {
+            background-color: #1e5a22;
+        }
+        
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         
         @media (max-width: 768px) { 
@@ -885,6 +1588,52 @@ $totalRegisteredDrivers = count($driverMonitoring);
             .search-filter-container { flex-direction: column; }
             .search-box { width: 100%; }
             .filter-buttons { width: 100%; justify-content: flex-start; }
+            .driver-approval-panel { flex-direction: column; gap: 15px; text-align: center; }
+            .reuploaded-docs-grid { grid-template-columns: 1fr; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .modal-header.approve-header { background-color: #347433; }
+        .modal-header.reject-header { background-color: #ef4444; }
+        .modal-header.suspend-header { background-color: #f59e0b; }
+        .modal-header.deactivate-header { background-color: #6b7280; }
+        .modal-header.reactivate-header { background-color: #347433; }
+        .modal-header.tricycle-header { background-color: #8b5cf6; }
+        
+        .filter-section {
+            margin: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
         }
     </style>
 </head>
@@ -895,7 +1644,7 @@ $totalRegisteredDrivers = count($driverMonitoring);
     <div class="user-management-content">
         <div class="welcome-section">
             <h1 class="welcome-title">Driver Application Management</h1>
-            <p class="welcome-subtitle">Document Status • <?php echo $totalApplicants; ?> total applicants</p>
+            <p class="welcome-subtitle">Document Status • <?php echo $totalApplicants; ?> total applicants | Tricycle Status • <?php echo $tricyclePendingCount; ?> pending approval</p>
         </div>
 
         <?php if ($actionResult): ?>
@@ -915,18 +1664,17 @@ $totalRegisteredDrivers = count($driverMonitoring);
         </div>
 
         <div class="tab-content-container">
-            <!-- ✅ DRIVER APPLICATIONS TAB -->
             <div id="applicationTab" class="tab-content <?php echo $activeTab == 'applicationTab' ? 'active' : ''; ?>">
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="filterApplicationsByStatus('all')">
                         <div class="stat-header">
                             <div class="stat-title">Total Applicants</div>
                             <div class="stat-icon"><i class="fas fa-users"></i></div>
                         </div>
                         <div class="stat-value"><?php echo $totalApplicants; ?></div>
-                        <div class="stat-change">From Firebase</div>
+                        <div class="stat-change">Click to view all</div>
                     </div>
-                    <div class="stat-card pending">
+                    <div class="stat-card pending" onclick="filterApplicationsByStatus('pending')">
                         <div class="stat-header">
                             <div class="stat-title">Pending Review</div>
                             <div class="stat-icon"><i class="fas fa-clock"></i></div>
@@ -934,7 +1682,7 @@ $totalRegisteredDrivers = count($driverMonitoring);
                         <div class="stat-value"><?php echo $pendingCount; ?></div>
                         <div class="stat-change">Awaiting approval</div>
                     </div>
-                    <div class="stat-card approved">
+                    <div class="stat-card approved" onclick="filterApplicationsByStatus('approved')">
                         <div class="stat-header">
                             <div class="stat-title">Approved</div>
                             <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
@@ -942,13 +1690,13 @@ $totalRegisteredDrivers = count($driverMonitoring);
                         <div class="stat-value"><?php echo $approvedCount; ?></div>
                         <div class="stat-change">Ready to drive</div>
                     </div>
-                    <div class="stat-card rejected">
+                    <div class="stat-card rejected" onclick="filterApplicationsByStatus('rejected')">
                         <div class="stat-header">
                             <div class="stat-title">Rejected</div>
                             <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
                         </div>
                         <div class="stat-value"><?php echo $rejectedCount; ?></div>
-                        <div class="stat-change">Needs review</div>
+                        <div class="stat-change">Needs re-upload</div>
                     </div>
                 </div>
 
@@ -983,15 +1731,22 @@ $totalRegisteredDrivers = count($driverMonitoring);
                                 <th>Applied</th>
                                 <th>Status</th>
                                 <th>Document Status</th>
+                                <th>Tricycle Status</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="applicationsTableBody">
                             <?php if (empty($driverApplications)): ?>
-                            <tr><td colspan="6" style="text-align: center; padding: 50px;">No driver applications found.</td></tr>
+                            <tr><td colspan="7" style="text-align: center; padding: 50px;">
+                                <div class="empty-state">
+                                    <i class="fas fa-user-slash"></i>
+                                    <h3>No Driver Applications Found</h3>
+                                    <p>No driver applications have been submitted yet.</p>
+                                </div>
+                            </td></tr>
                             <?php else: ?>
-                                <?php foreach ($driverApplications as $index => $app): ?>
-                                <tr data-doc-status="<?php echo strtolower($app['doc_status']); ?>">
+                                <?php foreach ($driverApplications as $app): ?>
+                                <tr data-doc-status="<?php echo strtolower($app['doc_status']); ?>" data-tricycle-status="<?php echo strtolower($app['tricycle_status']); ?>">
                                     <td>
                                         <div class="name-cell">
                                             <div class="profile-circle"><?php echo htmlspecialchars($app['initials']); ?></div>
@@ -1008,22 +1763,51 @@ $totalRegisteredDrivers = count($driverMonitoring);
                                         <span class="status-badge <?php echo $app['doc_status_class']; ?>">
                                             <?php echo $app['doc_status']; ?>
                                         </span>
-                                        <?php if (!empty($app['rejection_reason'])): ?>
+                                        <?php if (!empty($app['rejection_reason']) && $app['doc_status'] == 'Rejected'): ?>
                                             <br><small style="color: #ef4444;">Reason: <?php echo htmlspecialchars(substr($app['rejection_reason'], 0, 30)) . '...'; ?></small>
                                         <?php endif; ?>
                                     </td>
                                     <td>
+                                        <?php 
+                                        $tricycleStatusClass = 'tricycle-pending';
+                                        if ($app['tricycle_status'] == 'Approved') $tricycleStatusClass = 'tricycle-approved';
+                                        elseif ($app['tricycle_status'] == 'Rejected') $tricycleStatusClass = 'tricycle-rejected';
+                                        ?>
+                                        <span class="status-badge <?php echo $tricycleStatusClass; ?>">
+                                            <?php echo $app['tricycle_status']; ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        $expectedDocs = ['2x2_Picture', 'Cedula', 'Barangay_Clearance', 'Driver\'s_License', 'ORCR', 'Plate_Number', 'GCash_QR_Code'];
+                                        $uploadedDocsCount = 0;
+                                        if (!empty($app['documents']) && is_array($app['documents'])) {
+                                            foreach ($expectedDocs as $docKey) {
+                                                if (isset($app['documents'][$docKey]) && !empty($app['documents'][$docKey])) {
+                                                    $uploadedDocsCount++;
+                                                }
+                                            }
+                                        }
+                                        $hasReuploadedDocs = !empty($app['rejected_document_urls']) && count($app['rejected_document_urls']) > 0;
+                                        $canApproveDriver = ($app['doc_status'] != 'Approved' && $uploadedDocsCount == 7 && !$hasReuploadedDocs);
+                                        $canRejectDriver = ($app['doc_status'] != 'Rejected' && $app['doc_status'] != 'Approved' && $uploadedDocsCount > 0);
+                                        ?>
                                         <div class="action-buttons">
                                             <button class="action-btn view" onclick='showApplicationDetails(<?php echo json_encode($app, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'>
                                                 <i class="fas fa-eye"></i> View
                                             </button>
-                                            <?php if ($app['doc_status'] != 'Approved'): ?>
-                                            <button class="action-btn approve" onclick='approveApplication("<?php echo htmlspecialchars($app['driver_id'], ENT_QUOTES); ?>", "<?php echo htmlspecialchars($app['name'], ENT_QUOTES); ?>")'>
+                                            <?php if ($canApproveDriver): ?>
+                                            <button class="action-btn approve" onclick='showApproveConfirmation("<?php echo htmlspecialchars($app['driver_id'], ENT_QUOTES); ?>", "<?php echo htmlspecialchars($app['name'], ENT_QUOTES); ?>")'>
                                                 <i class="fas fa-check"></i> Approve
                                             </button>
                                             <?php endif; ?>
-                                            <?php if ($app['doc_status'] != 'Rejected' && $app['doc_status'] != 'Approved'): ?>
-                                            <button class="action-btn reject" onclick='showRejectModal("<?php echo htmlspecialchars($app['driver_id'], ENT_QUOTES); ?>", "<?php echo htmlspecialchars($app['name'], ENT_QUOTES); ?>")'>
+                                            <?php if ($canRejectDriver): ?>
+                                            <button class="action-btn reject" onclick='showRejectModal(
+                                                "<?php echo htmlspecialchars($app['driver_id'], ENT_QUOTES); ?>", 
+                                                "<?php echo htmlspecialchars($app['name'], ENT_QUOTES); ?>", 
+                                                <?php echo json_encode($app['documents'] ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>,
+                                                <?php echo json_encode(array_keys($app['rejected_document_urls'] ?? []), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>
+                                            )'>
                                                 <i class="fas fa-times"></i> Reject
                                             </button>
                                             <?php endif; ?>
@@ -1034,17 +1818,26 @@ $totalRegisteredDrivers = count($driverMonitoring);
                             <?php endif; ?>
                         </tbody>
                     </table>
-
-                    <div class="pagination">
-                        <div class="pagination-info">Showing <?php echo count($driverApplications); ?> applicants from Firebase</div>
+                    
+                    <div id="noApplicationsMessage" class="empty-state" style="display: none;">
+                        <i class="fas fa-filter"></i>
+                        <h3>No applications match your filter</h3>
+                        <p>Try adjusting your filter criteria.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- ✅ ACTIVE DRIVERS TAB -->
             <div id="monitoringTab" class="tab-content <?php echo $activeTab == 'monitoringTab' ? 'active' : ''; ?>">
-                <div class="stats-grid">
-                    <div class="stat-card active">
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="stat-card" onclick="filterDriversByStatus('all')">
+                        <div class="stat-header">
+                            <div class="stat-title">Total Drivers</div>
+                            <div class="stat-icon"><i class="fas fa-users"></i></div>
+                        </div>
+                        <div class="stat-value"><?php echo $totalRegisteredDrivers; ?></div>
+                        <div class="stat-change">All registered drivers</div>
+                    </div>
+                    <div class="stat-card active" onclick="filterDriversByStatus('active')">
                         <div class="stat-header">
                             <div class="stat-title">Active Drivers</div>
                             <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
@@ -1052,7 +1845,7 @@ $totalRegisteredDrivers = count($driverMonitoring);
                         <div class="stat-value"><?php echo $activeCount; ?></div>
                         <div class="stat-change">Currently active</div>
                     </div>
-                    <div class="stat-card suspended">
+                    <div class="stat-card suspended" onclick="filterDriversByStatus('suspended')">
                         <div class="stat-header">
                             <div class="stat-title">Suspended</div>
                             <div class="stat-icon"><i class="fas fa-pause-circle"></i></div>
@@ -1060,7 +1853,7 @@ $totalRegisteredDrivers = count($driverMonitoring);
                         <div class="stat-value"><?php echo $suspendedCount; ?></div>
                         <div class="stat-change">Temporarily suspended</div>
                     </div>
-                    <div class="stat-card deactivated">
+                    <div class="stat-card deactivated" onclick="filterDriversByStatus('deactivated')">
                         <div class="stat-header">
                             <div class="stat-title">Deactivated</div>
                             <div class="stat-icon"><i class="fas fa-ban"></i></div>
@@ -1068,13 +1861,40 @@ $totalRegisteredDrivers = count($driverMonitoring);
                         <div class="stat-value"><?php echo $deactivatedCount; ?></div>
                         <div class="stat-change">Permanently deactivated</div>
                     </div>
-                    <div class="stat-card">
+                </div>
+
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 15px;">
+                    <div class="stat-card" onclick="filterDriversByStatus('online')">
                         <div class="stat-header">
                             <div class="stat-title">Online Now</div>
                             <div class="stat-icon"><i class="fas fa-circle"></i></div>
                         </div>
-                        <div class="stat-value"><?php echo count(array_filter($driverMonitoring, function($d) { return $d['status'] == 'Online'; })); ?></div>
+                        <div class="stat-value"><?php echo $onlineCount; ?></div>
                         <div class="stat-change">Ready to accept rides</div>
+                    </div>
+                    <div class="stat-card tricycle-pending" onclick="filterDriversByStatus('tricycle-pending')">
+                        <div class="stat-header">
+                            <div class="stat-title">Tricycle Pending</div>
+                            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                        </div>
+                        <div class="stat-value"><?php echo $tricyclePendingCount; ?></div>
+                        <div class="stat-change">Awaiting approval</div>
+                    </div>
+                    <div class="stat-card tricycle-approved" onclick="filterDriversByStatus('tricycle-approved')">
+                        <div class="stat-header">
+                            <div class="stat-title">Tricycle Approved</div>
+                            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                        </div>
+                        <div class="stat-value"><?php echo $tricycleApprovedCount; ?></div>
+                        <div class="stat-change">Approved tricycles</div>
+                    </div>
+                    <div class="stat-card tricycle-rejected" onclick="filterDriversByStatus('tricycle-rejected')">
+                        <div class="stat-header">
+                            <div class="stat-title">Tricycle Rejected</div>
+                            <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
+                        </div>
+                        <div class="stat-value"><?php echo $tricycleRejectedCount; ?></div>
+                        <div class="stat-change">Needs revision</div>
                     </div>
                 </div>
                 
@@ -1101,6 +1921,15 @@ $totalRegisteredDrivers = count($driverMonitoring);
                             <button class="filter-btn" onclick="filterDrivers('online', this)">
                                 <i class="fas fa-circle"></i> Online
                             </button>
+                            <button class="filter-btn" onclick="filterDrivers('tricycle-pending', this)">
+                                <i class="fas fa-clock"></i> Tricycle Pending
+                            </button>
+                            <button class="filter-btn" onclick="filterDrivers('tricycle-approved', this)">
+                                <i class="fas fa-check-circle"></i> Tricycle Approved
+                            </button>
+                            <button class="filter-btn" onclick="filterDrivers('tricycle-rejected', this)">
+                                <i class="fas fa-times-circle"></i> Tricycle Rejected
+                            </button>
                         </div>
                     </div>
                     
@@ -1111,17 +1940,24 @@ $totalRegisteredDrivers = count($driverMonitoring);
                                 <th>Barangay</th>
                                 <th>Status</th>
                                 <th>Account Status</th>
+                                <th>Tricycle Status</th>
                                 <th>Trips</th>
                                 <th>Rating</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="monitoringTableBody">
                             <?php if (empty($driverMonitoring)): ?>
-                            <tr><td colspan="7" style="text-align: center; padding: 50px;">No registered drivers found.</td></tr>
+                            <tr><td colspan="8" style="text-align: center; padding: 50px;">
+                                <div class="empty-state">
+                                    <i class="fas fa-user-slash"></i>
+                                    <h3>No Registered Drivers Found</h3>
+                                    <p>No drivers have been registered and approved yet.</p>
+                                </div>
+                            </td></tr>
                             <?php else: ?>
                                 <?php foreach ($driverMonitoring as $driver): ?>
-                                <tr data-account-status="<?php echo strtolower($driver['account_status']); ?>" data-online-status="<?php echo strtolower($driver['status']); ?>">
+                                <tr data-account-status="<?php echo strtolower($driver['account_status']); ?>" data-online-status="<?php echo strtolower($driver['status']); ?>" data-tricycle-status="<?php echo strtolower($driver['tricycle_status']); ?>">
                                     <td>
                                         <div class="name-cell">
                                             <div class="profile-circle"><?php echo htmlspecialchars($driver['initials']); ?></div>
@@ -1141,12 +1977,29 @@ $totalRegisteredDrivers = count($driverMonitoring);
                                             <?php echo $driver['account_status']; ?>
                                         </span>
                                     </td>
+                                    <td>
+                                        <?php 
+                                        $tricycleStatusClass = 'tricycle-pending';
+                                        if ($driver['tricycle_status'] == 'Approved') $tricycleStatusClass = 'tricycle-approved';
+                                        elseif ($driver['tricycle_status'] == 'Rejected') $tricycleStatusClass = 'tricycle-rejected';
+                                        ?>
+                                        <span class="status-badge <?php echo $tricycleStatusClass; ?>">
+                                            <?php echo $driver['tricycle_status']; ?>
+                                        </span>
+                                        <?php if (!empty($driver['tricycle_rejection_reason'])): ?>
+                                            <br><small style="color: #ef4444;"><?php echo htmlspecialchars(substr($driver['tricycle_rejection_reason'], 0, 20)) . '...'; ?></small>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?php echo number_format($driver['total_trips']); ?></td>
                                     <td>⭐ <?php echo $driver['rating']; ?></td>
                                     <td>
                                         <div class="action-buttons">
                                             <button class="action-btn view" onclick='showActiveDriverDetails(<?php echo json_encode($driver, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'>
                                                 <i class="fas fa-eye"></i> View
+                                            </button>
+                                            
+                                            <button class="action-btn tricycle" onclick='showTricycleDetailsModal(<?php echo json_encode($driver, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'>
+                                                <i class="fas fa-motorcycle"></i> Tricycle
                                             </button>
                                             
                                             <?php if ($driver['account_status'] == 'Active'): ?>
@@ -1157,7 +2010,7 @@ $totalRegisteredDrivers = count($driverMonitoring);
                                                     <i class="fas fa-ban"></i> Deactivate
                                                 </button>
                                             <?php elseif ($driver['account_status'] == 'Suspended' || $driver['account_status'] == 'Deactivated'): ?>
-                                                <button class="action-btn reactivate" onclick='reactivateDriver("<?php echo htmlspecialchars($driver['driver_id'], ENT_QUOTES); ?>", "<?php echo htmlspecialchars($driver['name'], ENT_QUOTES); ?>")'>
+                                                <button class="action-btn reactivate" onclick='showReactivationModal("<?php echo htmlspecialchars($driver['driver_id'], ENT_QUOTES); ?>", "<?php echo htmlspecialchars($driver['name'], ENT_QUOTES); ?>")'>
                                                     <i class="fas fa-check"></i> Reactivate
                                                 </button>
                                             <?php endif; ?>
@@ -1168,19 +2021,24 @@ $totalRegisteredDrivers = count($driverMonitoring);
                             <?php endif; ?>
                         </tbody>
                     </table>
+                    
+                    <div id="noDriversMessage" class="empty-state" style="display: none;">
+                        <i class="fas fa-filter"></i>
+                        <h3>No drivers match your filter</h3>
+                        <p>Try adjusting your filter criteria.</p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="footer">
-            <p>ServiceCo • Live Firebase Data • <?php echo date('Y-m-d H:i'); ?></p>
+            <p>ServiceCo User Management &copy; <?php echo date('Y'); ?>. All rights reserved.</p>
         </div>
     </div>
 
-    <!-- ✅ APPLICATION DETAILS MODAL - DOCUMENTS ONLY -->
     <div class="modal" id="applicationModal">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header" id="applicationModalHeader">
                 <h3>Application Details</h3>
                 <button class="modal-close" onclick="closeModal('applicationModal')">&times;</button>
             </div>
@@ -1192,13 +2050,12 @@ $totalRegisteredDrivers = count($driverMonitoring);
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('applicationModal')">Close</button>
-                <button class="btn btn-primary" id="approveModalBtn" onclick="approveFromModal()">Approve</button>
+                <button class="btn btn-primary" id="approveModalBtn" onclick="approveFromModal()">Approve Driver</button>
                 <button class="btn btn-danger" id="rejectModalBtn" onclick="showRejectModalFromDetails()">Reject</button>
             </div>
         </div>
     </div>
 
-    <!-- ✅ ACTIVE DRIVER DETAILS MODAL - WITH EDITABLE TRICYCLE AND VALIDATION -->
     <div class="modal" id="activeDriverModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1211,49 +2068,98 @@ $totalRegisteredDrivers = count($driverMonitoring);
                     <p style="margin-top: 20px;">Loading...</p>
                 </div>
             </div>
-            <div class="modal-footer" id="activeDriverModalFooter">
+            <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('activeDriverModal')">Close</button>
-                <button class="btn btn-warning" id="editTricycleBtn" onclick="enableTricycleEdit()">Edit Tricycle</button>
-                <button class="btn btn-primary" id="saveTricycleBtn" style="display: none;" onclick="validateAndSaveTricycle()">Save Changes</button>
-                <button class="btn btn-secondary" id="cancelEditBtn" style="display: none;" onclick="cancelTricycleEdit()">Cancel</button>
             </div>
         </div>
     </div>
 
-    <!-- ✅ REJECTION REASON MODAL -->
+    <div class="modal" id="tricycleModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header" style="background-color: #8b5cf6;">
+                <h3>Tricycle Details</h3>
+                <button class="modal-close" onclick="closeModal('tricycleModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="tricycleDetailsContent">
+                <div style="text-align: center; padding: 40px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 40px; color: #347433;"></i>
+                    <p style="margin-top: 20px;">Loading...</p>
+                </div>
+            </div>
+            <div class="modal-footer" id="tricycleModalFooter">
+                <button class="btn btn-secondary" onclick="closeModal('tricycleModal')">Close</button>
+                <button class="btn btn-primary" id="approveTricycleBtn" onclick="approveTricycleFromModal()">Approve Tricycle</button>
+                <button class="btn btn-danger" id="rejectTricycleBtn" onclick="showRejectTricycleModalFromDetails()">Reject Tricycle</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="rejectModal">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header" style="background-color: #ef4444;">
                 <h4>Reject Application</h4>
-                <button class="modal-close" onclick="closeRejectModal()">&times;</button>
+                <button class="modal-close" onclick="closeModal('rejectModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; color: #555;">Select which documents need to be re-uploaded:</p>
+                
+                <div class="select-all-container">
+                    <input type="checkbox" id="selectAllDocs" onclick="toggleSelectAll()">
+                    <label for="selectAllDocs"><strong>Select All Documents</strong></label>
+                </div>
+                
+                <div class="document-selection" id="documentSelection"></div>
+                
+                <div class="selection-info" id="selectionInfo">No documents selected</div>
+                
+                <p style="margin-bottom: 10px; color: #555; margin-top: 15px;">Reason for rejection:</p>
+                <textarea id="rejectionReason" class="reason-input" rows="4" placeholder="e.g., Blurry photos, incomplete information, etc..."></textarea>
+                
+                <div id="rejectError" class="error-message-text">
+                    <i class="fas fa-exclamation-circle"></i> Please provide a reason and select at least one document.
+                </div>
+                
+                <p style="font-size: 12px; color: #666; margin-top: 5px;">Driver will only be able to re-upload the selected documents.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('rejectModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="validateAndSubmitRejection()">Reject Selected Documents</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="rejectTricycleModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header" style="background-color: #ef4444;">
+                <h4>Reject Tricycle</h4>
+                <button class="modal-close" onclick="closeModal('rejectTricycleModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <p style="margin-bottom: 15px; color: #555;">Please provide reason for rejection:</p>
-                <textarea id="rejectionReason" class="reason-input" rows="4" placeholder="e.g., Invalid driver's license, unclear documents, missing requirements..." oninput="validateRejectionReason()"></textarea>
+                <textarea id="tricycleRejectionReason" class="reason-input" rows="4" placeholder="e.g., Invalid documents, incorrect information, missing requirements..."></textarea>
                 
-                <div id="rejectError" class="error-message-text">
+                <div id="tricycleRejectError" class="error-message-text">
                     <i class="fas fa-exclamation-circle"></i> Please provide a reason for rejection.
                 </div>
                 
                 <p style="font-size: 12px; color: #666;">Driver will see this reason in their notification.</p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
-                <button class="btn btn-danger" onclick="validateAndSubmitRejection()">Submit Rejection</button>
+                <button class="btn btn-secondary" onclick="closeModal('rejectTricycleModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="submitTricycleRejection()">Reject Tricycle</button>
             </div>
         </div>
     </div>
 
-    <!-- ✅ DEACTIVATE MODAL - WITH REASON -->
     <div class="modal" id="deactivateModal">
         <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
+            <div class="modal-header" style="background-color: #6b7280;">
                 <h4>Deactivate Driver</h4>
-                <button class="modal-close" onclick="closeDeactivateModal()">&times;</button>
+                <button class="modal-close" onclick="closeModal('deactivateModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <p style="margin-bottom: 15px; color: #555;">Please provide reason for deactivation:</p>
-                <textarea id="deactivationReason" class="reason-input" rows="4" placeholder="e.g., Violation of terms, fraudulent activity, etc..." oninput="validateDeactivationReason()"></textarea>
+                <textarea id="deactivationReason" class="reason-input" rows="4" placeholder="e.g., Violation of terms, fraudulent activity, etc..."></textarea>
                 
                 <div id="deactivateError" class="error-message-text">
                     <i class="fas fa-exclamation-circle"></i> Please provide a reason for deactivation.
@@ -1262,21 +2168,20 @@ $totalRegisteredDrivers = count($driverMonitoring);
                 <p style="font-size: 12px; color: #666;">This driver will be permanently deactivated.</p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeDeactivateModal()">Cancel</button>
+                <button class="btn btn-secondary" onclick="closeModal('deactivateModal')">Cancel</button>
                 <button class="btn btn-danger" onclick="validateAndSubmitDeactivation()">Deactivate Driver</button>
             </div>
         </div>
     </div>
 
-    <!-- ✅ SUSPEND MODAL - WITH DATE -->
     <div class="modal" id="suspendModal">
         <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
+            <div class="modal-header" style="background-color: #f59e0b;">
                 <h4>Suspend Driver</h4>
-                <button class="modal-close" onclick="closeSuspendModal()">&times;</button>
+                <button class="modal-close" onclick="closeModal('suspendModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <p style="margin-bottom: 15px; color: #555;">Select suspension period:</p>
+                <p style="margin-bottom: 15px; color: #555;">Select suspension period and provide reason:</p>
                 
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #555;">Suspension Duration:</label>
@@ -1297,6 +2202,14 @@ $totalRegisteredDrivers = count($driverMonitoring);
                     <input type="datetime-local" id="customSuspendDate" class="date-input" onchange="validateSuspendDate()">
                 </div>
                 
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #555;">Suspension Reason:</label>
+                    <textarea id="suspendReason" class="reason-input" rows="3" placeholder="e.g., Violation of terms, multiple complaints, etc..."></textarea>
+                    <div id="suspendReasonError" class="error-message-text">
+                        <i class="fas fa-exclamation-circle"></i> Please provide a reason for suspension.
+                    </div>
+                </div>
+                
                 <div id="suspendDateDisplay" style="background-color: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
                     <span style="font-weight: 500;">Suspended until:</span> 
                     <span id="suspendUntilText"><?php echo date('M j, Y', strtotime('+7 days')); ?></span>
@@ -1309,13 +2222,35 @@ $totalRegisteredDrivers = count($driverMonitoring);
                 <input type="hidden" id="suspendUntilValue" value="<?php echo date('c', strtotime('+7 days')); ?>">
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeSuspendModal()">Cancel</button>
+                <button class="btn btn-secondary" onclick="closeModal('suspendModal')">Cancel</button>
                 <button class="btn btn-warning" onclick="validateAndSubmitSuspension()">Suspend Driver</button>
             </div>
         </div>
     </div>
 
-    <!-- ✅ DOCUMENT PREVIEW MODAL -->
+    <div class="modal" id="reactivationModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header" style="background-color: #347433;">
+                <h4>Reactivate Driver</h4>
+                <button class="modal-close" onclick="closeModal('reactivationModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; color: #555;">Please provide reason for reactivation:</p>
+                <textarea id="reactivationReason" class="reason-input" rows="4" placeholder="e.g., Issue resolved, appeal approved, etc..."></textarea>
+                
+                <div id="reactivationError" class="error-message-text">
+                    <i class="fas fa-exclamation-circle"></i> Please provide a reason for reactivation.
+                </div>
+                
+                <p style="font-size: 12px; color: #666;">Driver will see this reason in their notification.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('reactivationModal')">Cancel</button>
+                <button class="btn btn-success" onclick="validateAndSubmitReactivation()">Reactivate Driver</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="previewModal">
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
@@ -1334,59 +2269,124 @@ $totalRegisteredDrivers = count($driverMonitoring);
         </div>
     </div>
 
-    <!-- ✅ CONFIRMATION MODAL -->
-    <div class="modal" id="confirmationModal">
+    <div class="modal" id="approveSingleDocModal">
         <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h4 id="confirmationTitle">Confirm Action</h4>
-                <button class="modal-close" onclick="closeModal('confirmationModal')">&times;</button>
+            <div class="modal-header" style="background-color: #2E7D32;">
+                <h4>Approve Document</h4>
+                <button class="modal-close" onclick="closeModal('approveSingleDocModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <p id="confirmationText" style="font-size: 16px; color: #555; margin: 20px 0;">Are you sure?</p>
+                <div class="confirmation-icon" style="text-align: center; font-size: 48px; color: #2E7D32; margin-bottom: 20px;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <p id="approveDocText" style="font-size: 16px; color: #555; margin: 20px 0; text-align: center;">Approve this document?</p>
+                <p id="approveDocDetails" style="font-size: 14px; color: #666; text-align: center;">This will move the document to Approved Documents section.</p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('confirmationModal')">Cancel</button>
-                <button class="btn btn-primary" id="confirmActionBtn">Confirm</button>
+                <button class="btn btn-secondary" onclick="closeModal('approveSingleDocModal')">Cancel</button>
+                <button class="btn btn-success" id="confirmApproveDocBtn">Approve</button>
             </div>
         </div>
     </div>
 
-    <!-- ✅ HIDDEN FORM -->
+    <div class="modal" id="approveAllDocsModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header" style="background-color: #8b5cf6;">
+                <h4>Approve All Documents</h4>
+                <button class="modal-close" onclick="closeModal('approveAllDocsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="confirmation-icon" style="text-align: center; font-size: 48px; color: #8b5cf6; margin-bottom: 20px;">
+                    <i class="fas fa-check-double"></i>
+                </div>
+                <p id="approveAllDocsText" style="font-size: 16px; color: #555; margin: 20px 0; text-align: center;">Approve all re-uploaded documents?</p>
+                <p id="approveAllDocsDetails" style="font-size: 14px; color: #666; text-align: center;">All selected documents will be moved to Approved Documents section.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('approveAllDocsModal')">Cancel</button>
+                <button class="btn btn-purple" id="confirmApproveAllDocsBtn">Approve All</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="confirmationModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header" style="background-color: #347433;">
+                <h4 id="confirmationTitle">Confirm Approval</h4>
+                <button class="modal-close" onclick="closeModal('confirmationModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="confirmation-icon" style="text-align: center; font-size: 48px; color: #347433; margin-bottom: 20px;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <p id="confirmationText" style="font-size: 16px; color: #555; margin: 20px 0; text-align: center;">Are you sure?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('confirmationModal')">Cancel</button>
+                <button class="btn btn-success" id="confirmActionBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="tricycleConfirmModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header" style="background-color: #8b5cf6;">
+                <h4 id="tricycleConfirmTitle">Confirm Tricycle Approval</h4>
+                <button class="modal-close" onclick="closeModal('tricycleConfirmModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="confirmation-icon" style="text-align: center; font-size: 48px; color: #8b5cf6; margin-bottom: 20px;">
+                    <i class="fas fa-motorcycle"></i>
+                </div>
+                <p id="tricycleConfirmText" style="font-size: 16px; color: #555; margin: 20px 0; text-align: center;">Approve this tricycle?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('tricycleConfirmModal')">Cancel</button>
+                <button class="btn btn-purple" id="confirmTricycleBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <form id="actionForm" method="POST" style="display: none;">
         <input type="hidden" name="action" id="actionInput">
         <input type="hidden" name="driver_id" id="driverIdInput">
         <input type="hidden" name="driver_name" id="driverNameInput">
         <input type="hidden" name="rejection_reason" id="rejectionReasonInput">
+        <input type="hidden" name="rejected_documents" id="rejectedDocumentsInput">
         <input type="hidden" name="deactivation_reason" id="deactivationReasonInput">
         <input type="hidden" name="suspend_until" id="suspendUntilInput">
+        <input type="hidden" name="suspend_reason" id="suspendReasonInput">
+        <input type="hidden" name="reactivation_reason" id="reactivationReasonInput">
+        <input type="hidden" name="document_key" id="documentKeyInput">
+        <input type="hidden" name="document_url" id="documentUrlInput">
+        <input type="hidden" name="reuploaded_docs" id="reuploadedDocsInput">
         <input type="hidden" name="active_tab" id="activeTabInput" value="<?php echo $activeTab; ?>">
-        
-        <!-- Tricycle Update Fields -->
-        <input type="hidden" name="plate_number" id="plateNumberInput">
-        <input type="hidden" name="model" id="modelInput">
-        <input type="hidden" name="color" id="colorInput">
-        <input type="hidden" name="or_cr_number" id="orCrNumberInput">
-        <input type="hidden" name="license_number" id="licenseNumberInput">
-        <input type="hidden" name="expiry_date" id="expiryDateInput">
-        <input type="hidden" name="body_type" id="bodyTypeInput">
-        <input type="hidden" name="passenger_capacity" id="passengerCapacityInput">
-        <input type="hidden" name="year_manufactured" id="yearManufacturedInput">
     </form>
 
-    <!-- ✅ MESSAGES -->
     <div class="success-message" id="successMessage"></div>
     <div class="error-message-toast" id="errorMessage"></div>
 
     <script>
-        // ========== GLOBAL VARIABLES ==========
         let currentAppData = null;
         let currentDriverData = null;
+        let currentTricycleData = null;
         let currentDriverId = null;
         let currentDriverName = null;
         let currentAction = null;
-        let isEditMode = false;
+        let currentDocuments = {};
+        let currentDocumentKey = null;
+        let currentDocumentUrl = null;
+        let currentReuploadedDocs = {};
+        let currentPreSelectedDocs = [];
 
-        // ========== DOCUMENT READY ==========
+        const colorOptions = <?php echo json_encode($colorOptions); ?>;
+        const yearOptions = <?php echo json_encode($yearOptions); ?>;
+        const capacityOptions = <?php echo json_encode($capacityOptions); ?>;
+        const statusOptions = <?php echo json_encode($statusOptions); ?>;
+        
+        const documentDisplayNames = <?php echo json_encode($documentDisplayNames); ?>;
+        const documentIcons = <?php echo json_encode($documentIcons); ?>;
+
         document.addEventListener('DOMContentLoaded', function() {
             setupSearch();
             if (window.updateAllContentPositions) {
@@ -1394,7 +2394,6 @@ $totalRegisteredDrivers = count($driverMonitoring);
             }
         });
 
-        // ========== TAB FUNCTIONS ==========
         function openTab(tabName, button) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
@@ -1403,7 +2402,6 @@ $totalRegisteredDrivers = count($driverMonitoring);
             document.getElementById('activeTabInput').value = tabName;
         }
 
-        // ========== SEARCH/FILTER FUNCTIONS ==========
         function setupSearch() {
             const appSearch = document.getElementById('applicationSearch');
             if (appSearch) {
@@ -1428,7 +2426,11 @@ $totalRegisteredDrivers = count($driverMonitoring);
             const rows = tbody.getElementsByTagName('tr');
             const term = searchTerm.toLowerCase();
             
+            let visibleCount = 0;
+            
             for (let row of rows) {
+                if (row.cells.length === 1 && row.cells[0].colSpan > 1) continue;
+                
                 let found = false;
                 for (let cell of row.cells) {
                     if (cell.textContent.toLowerCase().includes(term)) {
@@ -1437,6 +2439,16 @@ $totalRegisteredDrivers = count($driverMonitoring);
                     }
                 }
                 row.style.display = found ? '' : 'none';
+                if (found) visibleCount++;
+            }
+            
+            const noResultsMsg = tableId === 'applicationTable' ? document.getElementById('noApplicationsMessage') : document.getElementById('noDriversMessage');
+            if (noResultsMsg) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    noResultsMsg.style.display = 'block';
+                } else {
+                    noResultsMsg.style.display = 'none';
+                }
             }
         }
 
@@ -1451,13 +2463,47 @@ $totalRegisteredDrivers = count($driverMonitoring);
             if (!tbody) return;
             const rows = tbody.getElementsByTagName('tr');
             
+            let visibleCount = 0;
+            
             for (let row of rows) {
+                if (row.cells.length === 1 && row.cells[0].colSpan > 1) continue;
+                
                 if (status === 'all') {
                     row.style.display = '';
+                    visibleCount++;
                 } else {
                     const docStatus = row.getAttribute('data-doc-status');
                     row.style.display = docStatus === status ? '' : 'none';
+                    if (docStatus === status) visibleCount++;
                 }
+            }
+            
+            const noResultsMsg = document.getElementById('noApplicationsMessage');
+            if (noResultsMsg) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    noResultsMsg.style.display = 'block';
+                } else {
+                    noResultsMsg.style.display = 'none';
+                }
+            }
+        }
+
+        function filterApplicationsByStatus(status) {
+            const buttons = document.querySelectorAll('#applicationTab .filter-btn');
+            let targetButton = null;
+            
+            if (status === 'all') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('All'));
+            } else if (status === 'pending') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('Pending') && !btn.textContent.includes('Tricycle'));
+            } else if (status === 'approved') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('Approved') && !btn.textContent.includes('Tricycle'));
+            } else if (status === 'rejected') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('Rejected') && !btn.textContent.includes('Tricycle'));
+            }
+            
+            if (targetButton) {
+                filterApplications(status, targetButton);
             }
         }
 
@@ -1472,20 +2518,67 @@ $totalRegisteredDrivers = count($driverMonitoring);
             if (!tbody) return;
             const rows = tbody.getElementsByTagName('tr');
             
+            let visibleCount = 0;
+            
             for (let row of rows) {
+                if (row.cells.length === 1 && row.cells[0].colSpan > 1) continue;
+                
                 if (status === 'all') {
                     row.style.display = '';
+                    visibleCount++;
+                } else if (status.startsWith('tricycle-')) {
+                    const tricycleStatus = row.getAttribute('data-tricycle-status');
+                    const statusValue = status.replace('tricycle-', '');
+                    row.style.display = tricycleStatus === statusValue ? '' : 'none';
+                    if (tricycleStatus === statusValue) visibleCount++;
                 } else if (status === 'online') {
                     const onlineStatus = row.getAttribute('data-online-status');
                     row.style.display = onlineStatus === 'online' ? '' : 'none';
+                    if (onlineStatus === 'online') visibleCount++;
                 } else {
                     const accountStatus = row.getAttribute('data-account-status');
                     row.style.display = accountStatus === status ? '' : 'none';
+                    if (accountStatus === status) visibleCount++;
+                }
+            }
+            
+            const noResultsMsg = document.getElementById('noDriversMessage');
+            if (noResultsMsg) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    noResultsMsg.style.display = 'block';
+                } else {
+                    noResultsMsg.style.display = 'none';
                 }
             }
         }
 
-        // ========== MODAL FUNCTIONS ==========
+        function filterDriversByStatus(status) {
+            const buttons = document.querySelectorAll('#monitoringTab .filter-btn');
+            let targetButton = null;
+            
+            if (status === 'all') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('All'));
+            } else if (status === 'active') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('Active'));
+            } else if (status === 'suspended') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('Suspended'));
+            } else if (status === 'deactivated') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('Deactivated'));
+            } else if (status === 'online') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('Online'));
+            } else if (status === 'tricycle-pending') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('Tricycle Pending'));
+            } else if (status === 'tricycle-approved') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('Tricycle Approved'));
+            } else if (status === 'tricycle-rejected') {
+                targetButton = Array.from(buttons).find(btn => btn.textContent.includes('Tricycle Rejected'));
+            }
+            
+            if (targetButton) {
+                filterDrivers(status, targetButton);
+            }
+        }
+
         function showModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) modal.classList.add('active');
@@ -1494,10 +2587,23 @@ $totalRegisteredDrivers = count($driverMonitoring);
         function closeModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) modal.classList.remove('active');
-            isEditMode = false;
+            
+            const rejectError = document.getElementById('rejectError');
+            if (rejectError) rejectError.style.display = 'none';
+            const deactivateError = document.getElementById('deactivateError');
+            if (deactivateError) deactivateError.style.display = 'none';
+            const suspendError = document.getElementById('suspendError');
+            if (suspendError) suspendError.style.display = 'none';
+            const tricycleError = document.getElementById('tricycleRejectError');
+            if (tricycleError) tricycleError.style.display = 'none';
+            const reasonError = document.getElementById('suspendReasonError');
+            if (reasonError) reasonError.style.display = 'none';
+            const reactivationError = document.getElementById('reactivationError');
+            if (reactivationError) reactivationError.style.display = 'none';
         }
 
-        // ========== DOCUMENT FUNCTIONS ==========
+        window.closeModal = closeModal;
+
         function getDocumentIcon(docKey) {
             const icons = {
                 '2x2_Picture': 'fas fa-id-card',
@@ -1512,6 +2618,8 @@ $totalRegisteredDrivers = count($driverMonitoring);
         }
 
         function previewDocument(docName, docUrl) {
+            if (!docUrl) return;
+            
             document.getElementById('previewTitle').textContent = 'Preview: ' + docName;
             document.getElementById('previewContent').innerHTML = 
                 '<img src="' + docUrl + '" alt="' + docName + '" class="preview-image" ' +
@@ -1540,61 +2648,76 @@ $totalRegisteredDrivers = count($driverMonitoring);
             return escapeHtml(value);
         }
 
-        // ✅ VALIDATION FUNCTIONS (Same as Mobile App)
-        function isValidPlateNumber(plateNumber) {
-            if (!plateNumber || plateNumber === 'Not Specified') return false;
-            // Philippine plate number formats: ABC 123, ABC-123, ABC123, AB 1234, AB-1234, AB1234
-            const pattern = /^[A-Z]{2,3}[-\s]?\d{3,4}$/i;
-            return pattern.test(plateNumber.trim());
+        function populateDocumentCheckboxes(documents, preSelectedDocs = []) {
+            currentDocuments = documents || {};
+            currentPreSelectedDocs = preSelectedDocs || [];
+            
+            const docOrder = ['2x2_Picture', 'Cedula', 'Barangay_Clearance', 'Driver\'s_License', 'ORCR', 'Plate_Number', 'GCash_QR_Code'];
+            const container = document.getElementById('documentSelection');
+            
+            let html = '';
+            let allEnabled = true;
+            
+            docOrder.forEach(docKey => {
+                const displayName = documentDisplayNames[docKey] || docKey.replace(/_/g, ' ');
+                const hasDocument = currentDocuments[docKey] ? true : false;
+                const isPreSelected = currentPreSelectedDocs.includes(docKey);
+                
+                if (!hasDocument) allEnabled = false;
+                
+                html += `
+                    <div class="document-checkbox">
+                        <input type="checkbox" id="doc_${docKey}" value="${docKey}" ${!hasDocument ? 'disabled' : ''} ${isPreSelected ? 'checked' : ''}>
+                        <label for="doc_${docKey}">
+                            ${displayName} 
+                            <small>${hasDocument ? '✓ Uploaded' : '❌ Missing'}</small>
+                        </label>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            const selectAll = document.getElementById('selectAllDocs');
+            if (selectAll) {
+                selectAll.checked = allEnabled && currentPreSelectedDocs.length === docOrder.filter(key => currentDocuments[key]).length;
+            }
+            
+            document.querySelectorAll('#documentSelection input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', updateSelectionInfo);
+            });
+            
+            updateSelectionInfo();
         }
 
-        function isValidLicenseNumber(licenseNumber) {
-            if (!licenseNumber || licenseNumber === 'Not Specified') return false;
-            // Philippine license format: L01-23-456789 or similar
-            const pattern = /^[A-Z]{1,2}\d{2}-\d{2}-\d{6}$/i;
-            return pattern.test(licenseNumber.trim());
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAllDocs');
+            const checkboxes = document.querySelectorAll('#documentSelection input[type="checkbox"]:not(:disabled)');
+            
+            checkboxes.forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+            
+            updateSelectionInfo();
         }
 
-        function isValidVehicleNumber(number, fieldType) {
-            if (!number || number === 'Not Specified' || number === '') return true; // Optional fields
-            // Alphanumeric with spaces and hyphens, 3-20 characters
-            const pattern = /^[A-Z0-9\s-]{3,20}$/i;
-            return pattern.test(number.trim());
-        }
-
-        function isValidYear(year) {
-            if (!year || year === 'Not Specified') return false;
-            if (year === 'Older') return true;
-            const currentYear = new Date().getFullYear();
-            const yearNum = parseInt(year);
-            return yearNum >= 1990 && yearNum <= currentYear + 1;
-        }
-
-        function isNotExpired(expiryDate) {
-            if (!expiryDate || expiryDate === 'Not Specified') return true; // Optional field
-            try {
-                const expiry = new Date(expiryDate);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                return expiry >= today;
-            } catch (e) {
-                return false;
+        function updateSelectionInfo() {
+            const checkboxes = document.querySelectorAll('#documentSelection input[type="checkbox"]:checked');
+            const count = checkboxes.length;
+            const info = document.getElementById('selectionInfo');
+            
+            if (count === 0) {
+                info.innerHTML = 'No documents selected';
+                info.style.color = '#666';
+            } else if (count === 1) {
+                info.innerHTML = '1 document selected for rejection';
+                info.style.color = '#ef4444';
+            } else {
+                info.innerHTML = count + ' documents selected for rejection';
+                info.style.color = '#ef4444';
             }
         }
 
-        function formatPlateNumber(plateNumber) {
-            if (!plateNumber || plateNumber === 'Not Specified') return '';
-            // Remove spaces and dashes, then format as ABC 123
-            const clean = plateNumber.replace(/[\s-]/g, '');
-            if (clean.length >= 3) {
-                const letters = clean.substring(0, Math.min(3, clean.length));
-                const numbers = clean.substring(letters.length);
-                return `${letters} ${numbers}`.toUpperCase();
-            }
-            return plateNumber.toUpperCase();
-        }
-
-        // ========== SHOW APPLICATION DETAILS ==========
         function showApplicationDetails(application) {
             currentAppData = application;
             
@@ -1608,37 +2731,148 @@ $totalRegisteredDrivers = count($driverMonitoring);
                 'GCash_QR_Code': 'GCash QR Code'
             };
             
-            let documentsGrid = '';
+            let uploadedDocsGrid = '';
             const docOrder = ['2x2_Picture', 'Cedula', 'Barangay_Clearance', 'Driver\'s_License', 'ORCR', 'Plate_Number', 'GCash_QR_Code'];
+            let uploadedDocsCount = 0;
             
             if (application.documents && Object.keys(application.documents).length > 0) {
                 docOrder.forEach(docKey => {
                     if (application.documents[docKey]) {
-                        const docUrl = application.documents[docKey];
-                        const displayName = displayNames[docKey] || docKey;
+                        const isRejected = application.rejected_documents && application.rejected_documents.includes(docKey);
+                        const hasReupload = application.rejected_document_urls && application.rejected_document_urls[docKey];
                         
-                        documentsGrid += `
-                            <div class="document-item">
-                                <div class="document-header">
-                                    <div class="document-icon"><i class="${getDocumentIcon(docKey)}"></i></div>
-                                    <div class="document-name">${escapeHtml(displayName)}</div>
+                        if (!isRejected || (isRejected && hasReupload && application.doc_status === 'Approved')) {
+                            uploadedDocsCount++;
+                            const docUrl = application.documents[docKey];
+                            const displayName = displayNames[docKey] || docKey;
+                            
+                            uploadedDocsGrid += `
+                                <div class="document-item">
+                                    <div class="document-header">
+                                        <div class="document-icon"><i class="${getDocumentIcon(docKey)}"></i></div>
+                                        <div class="document-name">${escapeHtml(displayName)}</div>
+                                    </div>
+                                    <button class="preview-btn" onclick='previewDocument("${escapeHtml(displayName)}", "${docUrl}")'>
+                                        <i class="fas fa-eye"></i> Preview
+                                    </button>
                                 </div>
-                                <button class="preview-btn" onclick='previewDocument("${escapeHtml(displayName)}", "${docUrl}")'>
-                                    <i class="fas fa-eye"></i> Preview
-                                </button>
-                            </div>
-                        `;
+                            `;
+                        }
                     }
                 });
             }
 
-            if (!documentsGrid) {
-                documentsGrid = '<div style="text-align: center; padding: 40px; color: #666;">No documents uploaded yet.</div>';
+            if (!uploadedDocsGrid) {
+                uploadedDocsGrid = '<div style="text-align: center; padding: 40px; color: #666;">No uploaded documents available.</div>';
             }
 
-            let rejectionHtml = '';
-            if (application.rejection_reason) {
-                rejectionHtml = `
+            let rejectedDocsHtml = '';
+            if (application.rejection_reason && application.doc_status == 'Rejected' && application.rejected_documents && application.rejected_documents.length > 0) {
+                let docsList = '';
+                application.rejected_documents.forEach(doc => {
+                    const icon = documentIcons[doc] || 'fas fa-file';
+                    const displayName = displayNames[doc] || doc.replace(/_/g, ' ');
+                    
+                    docsList += `
+                        <li>
+                            <div class="doc-icon-small"><i class="${icon}"></i></div>
+                            <span class="doc-name">${displayName}</span>
+                            <span class="doc-status">NEED RE-UPLOAD</span>
+                        </li>
+                    `;
+                });
+                
+                if (docsList) {
+                    rejectedDocsHtml = `
+                        <div class="rejected-documents-list">
+                            <h5><i class="fas fa-exclamation-triangle"></i> Documents to Re-upload:</h5>
+                            <ul>${docsList}</ul>
+                        </div>
+                    `;
+                }
+            }
+
+            let reuploadedDocsHtml = '';
+            let reuploadedDocsCount = 0;
+            let reuploadedDocsList = {};
+            
+            if (application.rejected_documents && application.rejected_documents.length > 0 && 
+                application.rejected_document_urls && Object.keys(application.rejected_document_urls).length > 0) {
+                
+                let docsGrid = '';
+                application.rejected_documents.forEach(doc => {
+                    const icon = documentIcons[doc] || 'fas fa-file';
+                    const displayName = displayNames[doc] || doc.replace(/_/g, ' ');
+                    
+                    if (application.rejected_document_urls[doc]) {
+                        reuploadedDocsCount++;
+                        reuploadedDocsList[doc] = application.rejected_document_urls[doc];
+                        
+                        docsGrid += `
+                            <div class="reuploaded-doc-card">
+                                <div class="reuploaded-doc-header">
+                                    <div class="reuploaded-doc-icon"><i class="${icon}"></i></div>
+                                    <span class="reuploaded-doc-name">${displayName}</span>
+                                </div>
+                                <div class="reuploaded-doc-actions">
+                                    <button class="btn-preview" onclick='previewDocument("${escapeHtml(displayName)}", "${application.rejected_document_urls[doc]}")'>
+                                        <i class="fas fa-eye"></i> Preview
+                                    </button>
+                                    <button class="btn-approve-doc" onclick='showApproveSingleDocModal("${escapeHtml(application.driver_id)}", "${escapeHtml(application.name)}", "${doc}", "${application.rejected_document_urls[doc]}")'>
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                
+                if (docsGrid) {
+                    let approveAllButton = '';
+                    if (reuploadedDocsCount > 0 && reuploadedDocsCount === application.rejected_documents.length) {
+                        approveAllButton = `
+                            <div class="approve-all-container">
+                                <button class="btn-approve-all" onclick='showApproveAllDocsModal("${escapeHtml(application.driver_id)}", "${escapeHtml(application.name)}", ${JSON.stringify(reuploadedDocsList)})'>
+                                    <i class="fas fa-check-double"></i> Approve All (${reuploadedDocsCount})
+                                </button>
+                            </div>
+                        `;
+                    }
+                    
+                    reuploadedDocsHtml = `
+                        <div class="reuploaded-section">
+                            <div class="reuploaded-header">
+                                <h5><i class="fas fa-cloud-upload-alt"></i> Re-uploaded Documents (${reuploadedDocsCount})</h5>
+                                ${approveAllButton}
+                            </div>
+                            <div class="reuploaded-docs-grid">
+                                ${docsGrid}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            let driverApprovalPanel = '';
+            const canApproveDriver = uploadedDocsCount === 7 && application.doc_status !== 'Approved';
+            
+            if (canApproveDriver) {
+                driverApprovalPanel = `
+                    <div class="driver-approval-panel">
+                        <div>
+                            <h4><i class="fas fa-check-circle"></i> Ready for Approval!</h4>
+                            <p>All 7 documents are uploaded and ready. Click Approve to finalize driver registration.</p>
+                        </div>
+                        <button onclick='showApproveConfirmation("${escapeHtml(application.driver_id)}", "${escapeHtml(application.name)}")'>
+                            <i class="fas fa-check-circle"></i> APPROVE DRIVER
+                        </button>
+                    </div>
+                `;
+            }
+
+            let rejectionReasonHtml = '';
+            if (application.rejection_reason && application.doc_status == 'Rejected') {
+                rejectionReasonHtml = `
                     <div class="rejection-reason">
                         <h5><i class="fas fa-exclamation-triangle"></i> Rejection Reason</h5>
                         <p>${escapeHtml(application.rejection_reason)}</p>
@@ -1646,10 +2880,12 @@ $totalRegisteredDrivers = count($driverMonitoring);
                 `;
             }
 
+            const sectionTitle = application.doc_status === 'Approved' ? 'Approved Documents' : 'Uploaded Documents';
+            
             const content = `
                 <div class="driver-info">
                     <div class="profile-pic-circle">
-                        ${application.profile_image ? `<img src="${application.profile_image}" alt="Profile">` : application.initials || 'DR'}
+                        ${application.profile_image ? `<img src="${application.profile_image}" alt="Profile">` : '<i class="fas fa-user"></i>'}
                     </div>
                     <div class="driver-details">
                         <h4>${escapeHtml(application.name)}</h4>
@@ -1668,18 +2904,28 @@ $totalRegisteredDrivers = count($driverMonitoring);
                         <p><strong>Vehicle:</strong> ${escapeHtml(application.vehicle_type)}</p>
                     </div>
                     <div class="detail-card">
-                        <h5><i class="fas fa-file"></i> Documents</h5>
-                        <p><strong>Uploaded:</strong> ${application.document_count}/7 files</p>
+                        <h5><i class="fas fa-file"></i> Documents Summary</h5>
+                        <p><strong>Uploaded:</strong> ${uploadedDocsCount}/7 files</p>
+                        <p><strong>Re-uploaded:</strong> ${reuploadedDocsCount}/${application.rejected_documents?.length || 0} documents</p>
                         <p><strong>Registration:</strong> ${application.registration_completed ? '✅ Complete' : '⏳ Pending'}</p>
                     </div>
                 </div>
                 
-                ${rejectionHtml}
+                ${rejectionReasonHtml}
+                
+                ${rejectedDocsHtml}
+                
+                ${reuploadedDocsHtml}
                 
                 <div class="documents-section">
-                    <h4>Uploaded Documents (${application.document_count}/7)</h4>
-                    <div class="documents-grid">${documentsGrid}</div>
+                    <h4>
+                        ${sectionTitle}
+                        <span class="document-count-badge">${uploadedDocsCount}/7</span>
+                    </h4>
+                    <div class="documents-grid">${uploadedDocsGrid}</div>
                 </div>
+                
+                ${driverApprovalPanel}
             `;
             
             document.getElementById('applicationDetailsContent').innerHTML = content;
@@ -1688,91 +2934,172 @@ $totalRegisteredDrivers = count($driverMonitoring);
             const rejectBtn = document.getElementById('rejectModalBtn');
             
             if (approveBtn) {
-                approveBtn.style.display = application.doc_status != 'Approved' ? 'inline-block' : 'none';
+                approveBtn.style.display = (application.doc_status != 'Approved' && uploadedDocsCount == 7 && reuploadedDocsCount === 0) ? 'inline-block' : 'none';
             }
             if (rejectBtn) {
-                rejectBtn.style.display = (application.doc_status != 'Rejected' && application.doc_status != 'Approved') ? 'inline-block' : 'none';
+                rejectBtn.style.display = (application.doc_status != 'Rejected' && application.doc_status != 'Approved' && uploadedDocsCount > 0) ? 'inline-block' : 'none';
+            }
+            
+            const modalHeader = document.getElementById('applicationModalHeader');
+            if (application.doc_status == 'Rejected') {
+                modalHeader.style.backgroundColor = '#ef4444';
+            } else if (application.doc_status == 'Approved') {
+                modalHeader.style.backgroundColor = '#347433';
+            } else {
+                modalHeader.style.backgroundColor = '#347433';
             }
             
             showModal('applicationModal');
         }
 
-        // ========== SHOW ACTIVE DRIVER DETAILS - WITH EDITABLE TRICYCLE AND VALIDATION ==========
+        function showApproveSingleDocModal(driverId, driverName, documentKey, documentUrl) {
+            currentDriverId = driverId;
+            currentDriverName = driverName;
+            currentDocumentKey = documentKey;
+            currentDocumentUrl = documentUrl;
+            
+            const displayName = documentDisplayNames[documentKey] || documentKey.replace(/_/g, ' ');
+            document.getElementById('approveDocText').innerHTML = `Approve <strong>${displayName}</strong>?`;
+            
+            document.getElementById('confirmApproveDocBtn').onclick = function() {
+                submitSingleDocApproval();
+            };
+            
+            showModal('approveSingleDocModal');
+        }
+
+        function submitSingleDocApproval() {
+            document.getElementById('actionInput').value = 'approve_single_document';
+            document.getElementById('driverIdInput').value = currentDriverId;
+            document.getElementById('driverNameInput').value = currentDriverName;
+            document.getElementById('documentKeyInput').value = currentDocumentKey;
+            document.getElementById('documentUrlInput').value = currentDocumentUrl;
+            document.getElementById('activeTabInput').value = 'applicationTab';
+            
+            closeModal('approveSingleDocModal');
+            document.getElementById('actionForm').submit();
+        }
+
+        function showApproveAllDocsModal(driverId, driverName, reuploadedDocs) {
+            currentDriverId = driverId;
+            currentDriverName = driverName;
+            currentReuploadedDocs = reuploadedDocs;
+            
+            const count = Object.keys(reuploadedDocs).length;
+            document.getElementById('approveAllDocsText').innerHTML = `Approve all ${count} documents?`;
+            
+            document.getElementById('confirmApproveAllDocsBtn').onclick = function() {
+                submitAllDocsApproval();
+            };
+            
+            showModal('approveAllDocsModal');
+        }
+
+        function submitAllDocsApproval() {
+            document.getElementById('actionInput').value = 'approve_all_documents';
+            document.getElementById('driverIdInput').value = currentDriverId;
+            document.getElementById('driverNameInput').value = currentDriverName;
+            document.getElementById('reuploadedDocsInput').value = JSON.stringify(currentReuploadedDocs);
+            document.getElementById('activeTabInput').value = 'applicationTab';
+            
+            closeModal('approveAllDocsModal');
+            document.getElementById('actionForm').submit();
+        }
+
         function showActiveDriverDetails(driver) {
             currentDriverData = driver;
-            currentDriverId = driver.driver_id;
-            currentDriverName = driver.name;
-            isEditMode = false;
             
             let suspendedInfo = '';
             if (driver.account_status == 'Suspended' && driver.suspended_until) {
                 suspendedInfo = `<p><strong>Suspended Until:</strong> ${escapeHtml(driver.suspended_until)}</p>`;
+                if (driver.suspension_reason) {
+                    suspendedInfo += `<p><strong>Reason:</strong> ${escapeHtml(driver.suspension_reason)}</p>`;
+                }
             }
             
             let deactivationInfo = '';
             if (driver.account_status == 'Deactivated' && driver.deactivation_reason) {
                 deactivationInfo = `<p><strong>Deactivation Reason:</strong> ${escapeHtml(driver.deactivation_reason)}</p>`;
             }
+            
+            let reactivationInfo = '';
+            if (driver.reactivation_reason) {
+                reactivationInfo = `<p><strong>Reactivation Reason:</strong> ${escapeHtml(driver.reactivation_reason)}</p>`;
+            }
 
             let accountStatusBadge = `<span class="status-badge ${driver.account_status_class}">${escapeHtml(driver.account_status)}</span>`;
 
-            // ✅ TRICYCLE DETAILS HTML - READ ONLY MODE
-            let tricycleHtml = '';
-            if (driver.tricycle) {
-                tricycleHtml = `
-                    <div class="tricycle-details">
-                        <h5 style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                            <i class="fas fa-motorcycle" style="color: #347433;"></i> Tricycle Information
-                            <span style="margin-left: auto; font-size: 13px; font-weight: normal; color: #666;">
-                                <i class="fas fa-info-circle"></i> Click "Edit Tricycle" to update
-                            </span>
-                        </h5>
-                        <div class="tricycle-grid" id="tricycleGrid">
-                            <div class="tricycle-item">
-                                <div class="tricycle-label">Plate Number</div>
-                                <div class="tricycle-value" id="plateNumberDisplay">${formatValue(driver.tricycle.plate_number)}</div>
+            let reuploadHistoryHtml = '';
+            const displayNames = {
+                '2x2_Picture': '2x2 Picture',
+                'Cedula': 'Cedula',
+                'Barangay_Clearance': 'Barangay Clearance',
+                'Driver\'s_License': 'Driver\'s License',
+                'ORCR': 'OR/CR',
+                'Plate_Number': 'Plate Number',
+                'GCash_QR_Code': 'GCash QR Code'
+            };
+            
+            if (driver.reupload_documents && Object.keys(driver.reupload_documents).length > 0) {
+                let historyItems = '';
+                
+                const reuploadDocs = driver.reupload_documents;
+                const uploadDates = [];
+                
+                Object.keys(reuploadDocs).forEach(key => {
+                    const parts = key.split('_');
+                    if (parts.length >= 2) {
+                        const dateStr = parts[parts.length - 1];
+                        if (dateStr.length === 8 && !isNaN(dateStr)) {
+                            const year = dateStr.substring(0, 4);
+                            const month = dateStr.substring(4, 6);
+                            const day = dateStr.substring(6, 8);
+                            const formattedDate = `${year}-${month}-${day}`;
+                            if (!uploadDates.includes(formattedDate)) {
+                                uploadDates.push(formattedDate);
+                            }
+                        }
+                    }
+                });
+                
+                uploadDates.sort().reverse().forEach(date => {
+                    let docsForDate = '';
+                    Object.keys(reuploadDocs).forEach(key => {
+                        if (key.includes(date.replace(/-/g, ''))) {
+                            const docName = key.split('_')[0];
+                            const displayName = displayNames[docName] || docName.replace(/_/g, ' ');
+                            docsForDate += `
+                                <span class="reupload-doc-tag" onclick='previewDocument("${escapeHtml(displayName)}", "${reuploadDocs[key]}")' style="cursor: pointer;">
+                                    <i class="${getDocumentIcon(docName)}"></i> ${displayName}
+                                </span>
+                            `;
+                        }
+                    });
+                    
+                    if (docsForDate) {
+                        historyItems += `
+                            <div class="reupload-history-item">
+                                <div class="reupload-date"><i class="far fa-calendar-alt"></i> ${date}</div>
+                                <div class="reupload-docs">${docsForDate}</div>
                             </div>
-                            <div class="tricycle-item">
-                                <div class="tricycle-label">Model</div>
-                                <div class="tricycle-value" id="modelDisplay">${formatValue(driver.tricycle.model)}</div>
-                            </div>
-                            <div class="tricycle-item">
-                                <div class="tricycle-label">Color</div>
-                                <div class="tricycle-value" id="colorDisplay">${formatValue(driver.tricycle.color)}</div>
-                            </div>
-                            <div class="tricycle-item">
-                                <div class="tricycle-label">Body Type</div>
-                                <div class="tricycle-value" id="bodyTypeDisplay">${formatValue(driver.tricycle.body_type)}</div>
-                            </div>
-                            <div class="tricycle-item">
-                                <div class="tricycle-label">Passenger Capacity</div>
-                                <div class="tricycle-value" id="passengerCapacityDisplay">${formatValue(driver.tricycle.passenger_capacity)}</div>
-                            </div>
-                            <div class="tricycle-item">
-                                <div class="tricycle-label">Year Manufactured</div>
-                                <div class="tricycle-value" id="yearManufacturedDisplay">${formatValue(driver.tricycle.year_manufactured)}</div>
-                            </div>
-                            <div class="tricycle-item">
-                                <div class="tricycle-label">OR/CR Number</div>
-                                <div class="tricycle-value" id="orCrNumberDisplay">${formatValue(driver.tricycle.or_cr_number)}</div>
-                            </div>
-                            <div class="tricycle-item">
-                                <div class="tricycle-label">License Number</div>
-                                <div class="tricycle-value" id="licenseNumberDisplay">${formatValue(driver.tricycle.license_number)}</div>
-                            </div>
-                            <div class="tricycle-item">
-                                <div class="tricycle-label">License Expiry</div>
-                                <div class="tricycle-value" id="expiryDateDisplay">${formatValue(driver.tricycle.expiry_date)}</div>
-                            </div>
+                        `;
+                    }
+                });
+                
+                if (historyItems) {
+                    reuploadHistoryHtml = `
+                        <div class="reupload-history-section">
+                            <h5><i class="fas fa-history"></i> Re-upload History</h5>
+                            ${historyItems}
                         </div>
-                    </div>
-                `;
+                    `;
+                }
             }
 
             const content = `
                 <div class="driver-info">
                     <div class="profile-pic-circle">
-                        ${driver.profile_image ? `<img src="${driver.profile_image}" alt="Profile">` : driver.initials || 'DR'}
+                        ${driver.profile_image ? `<img src="${driver.profile_image}" alt="Profile">` : '<i class="fas fa-user"></i>'}
                     </div>
                     <div class="driver-details">
                         <h4>${escapeHtml(driver.name)}</h4>
@@ -1784,6 +3111,7 @@ $totalRegisteredDrivers = count($driverMonitoring);
                         <p><strong>Account Status:</strong> ${accountStatusBadge}</p>
                         ${suspendedInfo}
                         ${deactivationInfo}
+                        ${reactivationInfo}
                     </div>
                 </div>
                 
@@ -1801,325 +3129,243 @@ $totalRegisteredDrivers = count($driverMonitoring);
                     </div>
                 </div>
                 
-                ${tricycleHtml}
+                ${reuploadHistoryHtml}
             `;
             
             document.getElementById('activeDriverDetailsContent').innerHTML = content;
-            
-            // Show/hide footer buttons
-            document.getElementById('editTricycleBtn').style.display = 'inline-block';
-            document.getElementById('saveTricycleBtn').style.display = 'none';
-            document.getElementById('cancelEditBtn').style.display = 'none';
-            
             showModal('activeDriverModal');
         }
 
-        // ========== EDIT TRICYCLE FUNCTIONS ==========
-        function enableTricycleEdit() {
-            if (!currentDriverData || !currentDriverData.tricycle) return;
+        function showTricycleDetailsModal(driver) {
+            currentDriverData = driver;
+            currentDriverId = driver.driver_id;
+            currentDriverName = driver.name;
             
-            isEditMode = true;
+            let tricycle = driver.tricycle_data || {};
+            let tricycleStatus = driver.tricycle_status || 'Pending';
             
-            // Hide edit button, show save and cancel
-            document.getElementById('editTricycleBtn').style.display = 'none';
-            document.getElementById('saveTricycleBtn').style.display = 'inline-block';
-            document.getElementById('cancelEditBtn').style.display = 'inline-block';
-            
-            const tricycle = currentDriverData.tricycle;
-            
-            // Replace display values with input fields
-            const plateNumberDisplay = document.getElementById('plateNumberDisplay');
-            if (plateNumberDisplay) {
-                const currentValue = tricycle.plate_number === 'Not Specified' ? '' : tricycle.plate_number;
-                plateNumberDisplay.outerHTML = `<input type="text" id="plateNumberInput" class="tricycle-input" value="${escapeHtml(currentValue)}" placeholder="Enter plate number (e.g., ABC 123)" oninput="validatePlateNumber()">`;
-            }
-            
-            const modelDisplay = document.getElementById('modelDisplay');
-            if (modelDisplay) {
-                const currentValue = tricycle.model === 'Not Specified' ? '' : tricycle.model;
-                modelDisplay.outerHTML = `<input type="text" id="modelInput" class="tricycle-input" value="${escapeHtml(currentValue)}" placeholder="Enter model">`;
-            }
-            
-            const colorDisplay = document.getElementById('colorDisplay');
-            if (colorDisplay) {
-                const currentValue = tricycle.color === 'Not Specified' ? '' : tricycle.color;
-                colorDisplay.outerHTML = `<input type="text" id="colorInput" class="tricycle-input" value="${escapeHtml(currentValue)}" placeholder="Enter color">`;
-            }
-            
-            const bodyTypeDisplay = document.getElementById('bodyTypeDisplay');
-            if (bodyTypeDisplay) {
-                const currentValue = tricycle.body_type === 'Not Specified' ? '' : tricycle.body_type;
-                bodyTypeDisplay.outerHTML = `<input type="text" id="bodyTypeInput" class="tricycle-input" value="${escapeHtml(currentValue)}" placeholder="Enter body type">`;
-            }
-            
-            const passengerCapacityDisplay = document.getElementById('passengerCapacityDisplay');
-            if (passengerCapacityDisplay) {
-                const currentValue = tricycle.passenger_capacity === 'Not Specified' ? '' : tricycle.passenger_capacity;
-                passengerCapacityDisplay.outerHTML = `<input type="text" id="passengerCapacityInput" class="tricycle-input" value="${escapeHtml(currentValue)}" placeholder="Enter passenger capacity">`;
-            }
-            
-            const yearManufacturedDisplay = document.getElementById('yearManufacturedDisplay');
-            if (yearManufacturedDisplay) {
-                const currentValue = tricycle.year_manufactured === 'Not Specified' ? '' : tricycle.year_manufactured;
-                yearManufacturedDisplay.outerHTML = `<input type="text" id="yearManufacturedInput" class="tricycle-input" value="${escapeHtml(currentValue)}" placeholder="Enter year (e.g., 2020)">`;
-            }
-            
-            const orCrNumberDisplay = document.getElementById('orCrNumberDisplay');
-            if (orCrNumberDisplay) {
-                const currentValue = tricycle.or_cr_number === 'Not Specified' ? '' : tricycle.or_cr_number;
-                orCrNumberDisplay.outerHTML = `<input type="text" id="orCrNumberInput" class="tricycle-input" value="${escapeHtml(currentValue)}" placeholder="Enter OR/CR number">`;
-            }
-            
-            const licenseNumberDisplay = document.getElementById('licenseNumberDisplay');
-            if (licenseNumberDisplay) {
-                const currentValue = tricycle.license_number === 'Not Specified' ? '' : tricycle.license_number;
-                licenseNumberDisplay.outerHTML = `<input type="text" id="licenseNumberInput" class="tricycle-input" value="${escapeHtml(currentValue)}" placeholder="Enter license number (e.g., L01-23-456789)" oninput="validateLicenseNumber()">`;
-            }
-            
-            const expiryDateDisplay = document.getElementById('expiryDateDisplay');
-            if (expiryDateDisplay) {
-                const currentValue = tricycle.expiry_date === 'Not Specified' ? '' : tricycle.expiry_date;
-                expiryDateDisplay.outerHTML = `<input type="date" id="expiryDateInput" class="tricycle-input" value="${escapeHtml(currentValue)}" placeholder="Enter expiry date" onchange="validateExpiryDate()">`;
-            }
-        }
-
-        // ✅ VALIDATION FUNCTIONS FOR EDIT MODE
-        function validatePlateNumber() {
-            const input = document.getElementById('plateNumberInput');
-            if (!input) return false;
-            
-            const value = input.value.trim();
-            let errorDiv = document.getElementById('plateNumberError');
-            
-            if (!errorDiv) {
-                errorDiv = document.createElement('div');
-                errorDiv.id = 'plateNumberError';
-                errorDiv.className = 'validation-error';
-                input.parentNode.appendChild(errorDiv);
-            }
-            
-            if (!value) {
-                input.classList.add('error');
-                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Plate number is required';
-                errorDiv.style.display = 'flex';
-                return false;
-            } else if (!isValidPlateNumber(value)) {
-                input.classList.add('error');
-                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Invalid format. Use: ABC 123, ABC-123, or ABC123';
-                errorDiv.style.display = 'flex';
-                return false;
+            let statusBadge = '';
+            if (tricycleStatus == 'Approved') {
+                statusBadge = '<span class="status-badge tricycle-approved">Approved</span>';
+            } else if (tricycleStatus == 'Rejected') {
+                statusBadge = '<span class="status-badge tricycle-rejected">Rejected</span>';
             } else {
-                input.classList.remove('error');
-                errorDiv.style.display = 'none';
-                return true;
+                statusBadge = '<span class="status-badge tricycle-pending">Pending</span>';
             }
+            
+            let rejectionHtml = '';
+            if (tricycleStatus == 'Rejected' && driver.tricycle_rejection_reason) {
+                rejectionHtml = `
+                    <div class="rejection-reason">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Rejection Reason</h5>
+                        <p>${escapeHtml(driver.tricycle_rejection_reason)}</p>
+                    </div>
+                `;
+            }
+            
+            let lastUpdated = 'Never';
+            if (tricycle.UpdatedAt) {
+                try {
+                    lastUpdated = new Date(tricycle.UpdatedAt).toLocaleString();
+                } catch (e) {}
+            }
+            
+            const canApprove = (driver.account_status == 'Active' && driver.doc_status == 'Approved');
+            
+            const content = `
+                <div style="padding: 10px;">
+                    <h3 style="margin-bottom: 20px;">Tricycle Details for ${escapeHtml(driver.name)} ${statusBadge}</h3>
+                    
+                    <div class="tricycle-grid">
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Plate Number</div>
+                            <div class="tricycle-value">${formatValue(tricycle.PlateNumber || 'Not Specified')}</div>
+                        </div>
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Body Number</div>
+                            <div class="tricycle-value">${formatValue(tricycle.BodyNumber || 'Not Specified')}</div>
+                        </div>
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Make & Model</div>
+                            <div class="tricycle-value">${formatValue(tricycle.MakeModel || 'Not Specified')}</div>
+                        </div>
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Driver's License</div>
+                            <div class="tricycle-value">${formatValue(tricycle.LicenseNumber || 'Not Specified')}</div>
+                        </div>
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Year Model</div>
+                            <div class="tricycle-value">${formatValue(tricycle.YearModel || 'Not Specified')}</div>
+                        </div>
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Color</div>
+                            <div class="tricycle-value">${formatValue(tricycle.Color || 'Not Specified')}</div>
+                        </div>
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Engine Number</div>
+                            <div class="tricycle-value">${formatValue(tricycle.EngineNumber || 'Not Specified')}</div>
+                        </div>
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Chassis Number</div>
+                            <div class="tricycle-value">${formatValue(tricycle.ChassisNumber || 'Not Specified')}</div>
+                        </div>
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Seating Capacity</div>
+                            <div class="tricycle-value">${formatValue(tricycle.SeatingCapacity || 'Not Specified')}</div>
+                        </div>
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Status</div>
+                            <div class="tricycle-value">${formatValue(tricycle.Status || 'Not Specified')}</div>
+                        </div>
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Vehicle Type</div>
+                            <div class="tricycle-value">${formatValue(tricycle.VehicleType || 'Tricycle')}</div>
+                        </div>
+                        <div class="tricycle-item">
+                            <div class="tricycle-label">Last Updated</div>
+                            <div class="tricycle-value">${lastUpdated}</div>
+                        </div>
+                    </div>
+                    
+                    ${rejectionHtml}
+                    
+                    ${!canApprove && tricycleStatus != 'Approved' ? 
+                        '<div style="background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 6px; padding: 15px; margin-top: 20px;"><i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Note: Driver must be active and documents approved before tricycle can be approved.</div>' : ''}
+                </div>
+            `;
+            
+            document.getElementById('tricycleDetailsContent').innerHTML = content;
+            
+            const approveBtn = document.getElementById('approveTricycleBtn');
+            const rejectBtn = document.getElementById('rejectTricycleBtn');
+            
+            if (approveBtn && rejectBtn) {
+                if (tricycleStatus == 'Approved') {
+                    approveBtn.style.display = 'none';
+                    rejectBtn.style.display = 'none';
+                } else {
+                    approveBtn.style.display = canApprove ? 'inline-block' : 'none';
+                    rejectBtn.style.display = 'inline-block';
+                }
+            }
+            
+            showModal('tricycleModal');
         }
 
-        function validateLicenseNumber() {
-            const input = document.getElementById('licenseNumberInput');
-            if (!input) return false;
+        function showApproveConfirmation(driverId, name) {
+            document.getElementById('confirmationTitle').textContent = 'Approve Application';
+            document.getElementById('confirmationText').textContent = `Approve ${name}'s application?`;
+            currentDriverId = driverId;
+            currentDriverName = name;
+            currentAction = 'approve';
             
-            const value = input.value.trim();
-            let errorDiv = document.getElementById('licenseNumberError');
+            document.getElementById('confirmActionBtn').onclick = function() {
+                submitAction('approve', currentDriverId, currentDriverName);
+                closeModal('confirmationModal');
+            };
             
-            if (!errorDiv) {
-                errorDiv = document.createElement('div');
-                errorDiv.id = 'licenseNumberError';
-                errorDiv.className = 'validation-error';
-                input.parentNode.appendChild(errorDiv);
-            }
-            
-            if (!value) {
-                input.classList.add('error');
-                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> License number is required';
-                errorDiv.style.display = 'flex';
-                return false;
-            } else if (!isValidLicenseNumber(value)) {
-                input.classList.add('error');
-                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Invalid format. Use: L01-23-456789';
-                errorDiv.style.display = 'flex';
-                return false;
-            } else {
-                input.classList.remove('error');
-                errorDiv.style.display = 'none';
-                return true;
-            }
-        }
-
-        function validateExpiryDate() {
-            const input = document.getElementById('expiryDateInput');
-            if (!input) return true; // Optional field
-            
-            const value = input.value;
-            let errorDiv = document.getElementById('expiryDateError');
-            
-            if (!errorDiv) {
-                errorDiv = document.createElement('div');
-                errorDiv.id = 'expiryDateError';
-                errorDiv.className = 'validation-error';
-                input.parentNode.appendChild(errorDiv);
-            }
-            
-            if (value && !isNotExpired(value)) {
-                input.classList.add('error');
-                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> License is expired';
-                errorDiv.style.display = 'flex';
-                return false;
-            } else {
-                input.classList.remove('error');
-                errorDiv.style.display = 'none';
-                return true;
-            }
-        }
-
-        function validateYearManufactured() {
-            const input = document.getElementById('yearManufacturedInput');
-            if (!input) return false;
-            
-            const value = input.value.trim();
-            let errorDiv = document.getElementById('yearManufacturedError');
-            
-            if (!errorDiv) {
-                errorDiv = document.createElement('div');
-                errorDiv.id = 'yearManufacturedError';
-                errorDiv.className = 'validation-error';
-                input.parentNode.appendChild(errorDiv);
-            }
-            
-            if (!value) {
-                input.classList.add('error');
-                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Year is required';
-                errorDiv.style.display = 'flex';
-                return false;
-            } else if (!isValidYear(value)) {
-                input.classList.add('error');
-                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Invalid year (1990-' + (new Date().getFullYear() + 1) + ')';
-                errorDiv.style.display = 'flex';
-                return false;
-            } else {
-                input.classList.remove('error');
-                errorDiv.style.display = 'none';
-                return true;
-            }
-        }
-
-        function validateAllFields() {
-            let isValid = true;
-            
-            if (document.getElementById('plateNumberInput')) {
-                isValid = validatePlateNumber() && isValid;
-            }
-            
-            if (document.getElementById('licenseNumberInput')) {
-                isValid = validateLicenseNumber() && isValid;
-            }
-            
-            if (document.getElementById('expiryDateInput')) {
-                isValid = validateExpiryDate() && isValid;
-            }
-            
-            if (document.getElementById('yearManufacturedInput')) {
-                isValid = validateYearManufactured() && isValid;
-            }
-            
-            return isValid;
-        }
-
-        function cancelTricycleEdit() {
-            // Refresh the modal with original data
-            showActiveDriverDetails(currentDriverData);
-        }
-
-        function validateAndSaveTricycle() {
-            // Validate all fields before saving
-            if (!validateAllFields()) {
-                alert('Please fix the validation errors before saving.');
-                return;
-            }
-            
-            // Get all input values
-            const plateNumber = document.getElementById('plateNumberInput')?.value.trim() || 'Not Specified';
-            const model = document.getElementById('modelInput')?.value.trim() || 'Not Specified';
-            const color = document.getElementById('colorInput')?.value.trim() || 'Not Specified';
-            const bodyType = document.getElementById('bodyTypeInput')?.value.trim() || 'Not Specified';
-            const passengerCapacity = document.getElementById('passengerCapacityInput')?.value.trim() || 'Not Specified';
-            const yearManufactured = document.getElementById('yearManufacturedInput')?.value.trim() || 'Not Specified';
-            const orCrNumber = document.getElementById('orCrNumberInput')?.value.trim() || 'Not Specified';
-            const licenseNumber = document.getElementById('licenseNumberInput')?.value.trim() || 'Not Specified';
-            const expiryDate = document.getElementById('expiryDateInput')?.value || 'Not Specified';
-            
-            // Format plate number
-            const formattedPlateNumber = formatPlateNumber(plateNumber);
-            
-            // Set values in hidden form
-            document.getElementById('plateNumberInput').value = formattedPlateNumber;
-            document.getElementById('modelInput').value = model;
-            document.getElementById('colorInput').value = color;
-            document.getElementById('bodyTypeInput').value = bodyType;
-            document.getElementById('passengerCapacityInput').value = passengerCapacity;
-            document.getElementById('yearManufacturedInput').value = yearManufactured;
-            document.getElementById('orCrNumberInput').value = orCrNumber;
-            document.getElementById('licenseNumberInput').value = licenseNumber;
-            document.getElementById('expiryDateInput').value = expiryDate;
-            
-            // Submit the form
-            submitAction('update_tricycle', currentDriverId, currentDriverName);
-        }
-
-        // ========== APPROVE FUNCTIONS ==========
-        function approveApplication(driverId, name) {
-            showConfirmation('Approve Application', `Approve ${name}'s application?`, 'approve', driverId, name);
+            showModal('confirmationModal');
         }
 
         function approveFromModal() {
             if (currentAppData) {
-                submitAction('approve', currentAppData.driver_id, currentAppData.name);
+                showApproveConfirmation(currentAppData.driver_id, currentAppData.name);
             }
         }
 
-        // ========== REJECT FUNCTIONS ==========
-        function showRejectModal(driverId, name) {
+        function approveTricycleFromModal() {
+            if (currentDriverData) {
+                document.getElementById('tricycleConfirmTitle').textContent = 'Approve Tricycle';
+                document.getElementById('tricycleConfirmText').textContent = `Approve tricycle for ${currentDriverData.name}?`;
+                currentAction = 'approve_tricycle';
+                
+                document.getElementById('confirmTricycleBtn').onclick = function() {
+                    submitAction('approve_tricycle', currentDriverData.driver_id, currentDriverData.name);
+                    closeModal('tricycleConfirmModal');
+                };
+                
+                showModal('tricycleConfirmModal');
+            }
+        }
+
+        function showRejectModal(driverId, name, documents, preSelectedDocs = []) {
             currentDriverId = driverId;
             currentDriverName = name;
+            
             document.getElementById('rejectionReason').value = '';
+            document.getElementById('selectAllDocs').checked = false;
+            
+            populateDocumentCheckboxes(documents, preSelectedDocs);
+            
             const errorMsg = document.getElementById('rejectError');
             if (errorMsg) errorMsg.style.display = 'none';
+            
             showModal('rejectModal');
         }
 
         function showRejectModalFromDetails() {
             if (currentAppData) {
-                showRejectModal(currentAppData.driver_id, currentAppData.name);
+                const preSelectedDocs = Object.keys(currentAppData.rejected_document_urls || {});
+                showRejectModal(currentAppData.driver_id, currentAppData.name, currentAppData.documents, preSelectedDocs);
             }
-        }
-
-        function closeRejectModal() {
-            closeModal('rejectModal');
-            const errorMsg = document.getElementById('rejectError');
-            if (errorMsg) errorMsg.style.display = 'none';
-        }
-
-        function validateRejectionReason() {
-            const reason = document.getElementById('rejectionReason').value.trim();
-            const errorMsg = document.getElementById('rejectError');
-            if (errorMsg) errorMsg.style.display = reason === '' ? 'flex' : 'none';
         }
 
         function validateAndSubmitRejection() {
             const reason = document.getElementById('rejectionReason').value.trim();
+            const selectedDocs = Array.from(document.querySelectorAll('#documentSelection input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            
             const errorMsg = document.getElementById('rejectError');
             
-            if (reason === '') {
-                if (errorMsg) errorMsg.style.display = 'flex';
+            if (reason === '' || selectedDocs.length === 0) {
+                errorMsg.style.display = 'flex';
+                errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please provide a reason and select at least one document.';
                 return;
             }
             
-            if (errorMsg) errorMsg.style.display = 'none';
+            errorMsg.style.display = 'none';
             closeModal('rejectModal');
+            
+            document.getElementById('rejectedDocumentsInput').value = JSON.stringify(selectedDocs);
+            
             submitAction('reject', currentDriverId, currentDriverName, reason);
         }
 
-        // ========== DEACTIVATE FUNCTIONS ==========
+        function showRejectTricycleModal(driverId, name) {
+            currentDriverId = driverId;
+            currentDriverName = name;
+            document.getElementById('tricycleRejectionReason').value = '';
+            const errorMsg = document.getElementById('tricycleRejectError');
+            if (errorMsg) errorMsg.style.display = 'none';
+            showModal('rejectTricycleModal');
+        }
+
+        function showRejectTricycleModalFromDetails() {
+            if (currentDriverData) {
+                showRejectTricycleModal(currentDriverData.driver_id, currentDriverData.name);
+            }
+        }
+
+        function validateTricycleRejectionReason() {
+            const reason = document.getElementById('tricycleRejectionReason').value.trim();
+            const errorMsg = document.getElementById('tricycleRejectError');
+            errorMsg.style.display = reason === '' ? 'flex' : 'none';
+        }
+
+        function submitTricycleRejection() {
+            const reason = document.getElementById('tricycleRejectionReason').value.trim();
+            const errorMsg = document.getElementById('tricycleRejectError');
+            
+            if (reason === '') {
+                errorMsg.style.display = 'flex';
+                return;
+            }
+            
+            errorMsg.style.display = 'none';
+            closeModal('rejectTricycleModal');
+            submitAction('reject_tricycle', currentDriverId, currentDriverName, reason);
+        }
+
         function showDeactivateModal(driverId, name) {
             currentDriverId = driverId;
             currentDriverName = name;
@@ -2129,16 +3375,10 @@ $totalRegisteredDrivers = count($driverMonitoring);
             showModal('deactivateModal');
         }
 
-        function closeDeactivateModal() {
-            closeModal('deactivateModal');
-            const errorMsg = document.getElementById('deactivateError');
-            if (errorMsg) errorMsg.style.display = 'none';
-        }
-
         function validateDeactivationReason() {
             const reason = document.getElementById('deactivationReason').value.trim();
             const errorMsg = document.getElementById('deactivateError');
-            if (errorMsg) errorMsg.style.display = reason === '' ? 'flex' : 'none';
+            errorMsg.style.display = reason === '' ? 'flex' : 'none';
         }
 
         function validateAndSubmitDeactivation() {
@@ -2146,22 +3386,22 @@ $totalRegisteredDrivers = count($driverMonitoring);
             const errorMsg = document.getElementById('deactivateError');
             
             if (reason === '') {
-                if (errorMsg) errorMsg.style.display = 'flex';
+                errorMsg.style.display = 'flex';
                 return;
             }
             
-            if (errorMsg) errorMsg.style.display = 'none';
+            errorMsg.style.display = 'none';
             closeModal('deactivateModal');
             document.getElementById('deactivationReasonInput').value = reason;
             submitAction('deactivate', currentDriverId, currentDriverName);
         }
 
-        // ========== SUSPEND FUNCTIONS ==========
         function showSuspendModal(driverId, name) {
             currentDriverId = driverId;
             currentDriverName = name;
             document.getElementById('suspendDuration').value = '7';
             document.getElementById('customDateContainer').style.display = 'none';
+            document.getElementById('suspendReason').value = '';
             
             const defaultDate = new Date();
             defaultDate.setDate(defaultDate.getDate() + 7);
@@ -2171,13 +3411,10 @@ $totalRegisteredDrivers = count($driverMonitoring);
             const errorMsg = document.getElementById('suspendError');
             if (errorMsg) errorMsg.style.display = 'none';
             
+            const reasonError = document.getElementById('suspendReasonError');
+            if (reasonError) reasonError.style.display = 'none';
+            
             showModal('suspendModal');
-        }
-
-        function closeSuspendModal() {
-            closeModal('suspendModal');
-            const errorMsg = document.getElementById('suspendError');
-            if (errorMsg) errorMsg.style.display = 'none';
         }
 
         function updateSuspendDate() {
@@ -2213,10 +3450,8 @@ $totalRegisteredDrivers = count($driverMonitoring);
                 const customDate = document.getElementById('customSuspendDate').value;
                 
                 if (!customDate) {
-                    if (errorMsg) {
-                        errorMsg.style.display = 'flex';
-                        errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please select a custom date.';
-                    }
+                    errorMsg.style.display = 'flex';
+                    errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please select a custom date.';
                     return false;
                 }
                 
@@ -2224,20 +3459,24 @@ $totalRegisteredDrivers = count($driverMonitoring);
                 const now = new Date();
                 
                 if (selectedDate <= now) {
-                    if (errorMsg) {
-                        errorMsg.style.display = 'flex';
-                        errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Suspension date must be in the future.';
-                    }
+                    errorMsg.style.display = 'flex';
+                    errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Suspension date must be in the future.';
                     return false;
                 }
                 
                 updateSuspendDateDisplay(selectedDate);
                 document.getElementById('suspendUntilValue').value = selectedDate.toISOString();
-                
-                if (errorMsg) errorMsg.style.display = 'none';
+                errorMsg.style.display = 'none';
                 return true;
             }
             return true;
+        }
+
+        function validateSuspendReason() {
+            const reason = document.getElementById('suspendReason').value.trim();
+            const errorMsg = document.getElementById('suspendReasonError');
+            errorMsg.style.display = reason === '' ? 'flex' : 'none';
+            return reason !== '';
         }
 
         function updateSuspendDateDisplay(date) {
@@ -2247,6 +3486,14 @@ $totalRegisteredDrivers = count($driverMonitoring);
         }
 
         function validateAndSubmitSuspension() {
+            const reason = document.getElementById('suspendReason').value.trim();
+            const reasonError = document.getElementById('suspendReasonError');
+            
+            if (reason === '') {
+                reasonError.style.display = 'flex';
+                return;
+            }
+            
             const duration = document.getElementById('suspendDuration').value;
             let suspendUntil;
             
@@ -2259,27 +3506,43 @@ $totalRegisteredDrivers = count($driverMonitoring);
                 suspendUntil = date.toISOString();
             }
             
+            reasonError.style.display = 'none';
             closeModal('suspendModal');
             document.getElementById('suspendUntilInput').value = suspendUntil;
+            document.getElementById('suspendReasonInput').value = reason;
             submitAction('suspend', currentDriverId, currentDriverName);
         }
 
-        // ========== REACTIVATE FUNCTIONS ==========
-        function reactivateDriver(driverId, name) {
-            showConfirmation('Reactivate Driver', `Are you sure you want to reactivate ${name}?`, 'reactivate', driverId, name);
-        }
-
-        // ========== CONFIRMATION ==========
-        function showConfirmation(title, message, action, driverId, driverName) {
-            document.getElementById('confirmationTitle').textContent = title;
-            document.getElementById('confirmationText').textContent = message;
-            currentAction = action;
+        function showReactivationModal(driverId, name) {
             currentDriverId = driverId;
-            currentDriverName = driverName;
-            showModal('confirmationModal');
+            currentDriverName = name;
+            document.getElementById('reactivationReason').value = '';
+            const errorMsg = document.getElementById('reactivationError');
+            if (errorMsg) errorMsg.style.display = 'none';
+            showModal('reactivationModal');
         }
 
-        // ========== SUBMIT ACTION ==========
+        function validateReactivationReason() {
+            const reason = document.getElementById('reactivationReason').value.trim();
+            const errorMsg = document.getElementById('reactivationError');
+            errorMsg.style.display = reason === '' ? 'flex' : 'none';
+        }
+
+        function validateAndSubmitReactivation() {
+            const reason = document.getElementById('reactivationReason').value.trim();
+            const errorMsg = document.getElementById('reactivationError');
+            
+            if (reason === '') {
+                errorMsg.style.display = 'flex';
+                return;
+            }
+            
+            errorMsg.style.display = 'none';
+            closeModal('reactivationModal');
+            document.getElementById('reactivationReasonInput').value = reason;
+            submitAction('reactivate', currentDriverId, currentDriverName);
+        }
+
         function submitAction(action, driverId, driverName, reason = '') {
             const form = document.getElementById('actionForm');
             document.getElementById('actionInput').value = action;
@@ -2287,45 +3550,25 @@ $totalRegisteredDrivers = count($driverMonitoring);
             document.getElementById('driverNameInput').value = driverName;
             
             if (reason) {
-                if (action === 'reject') {
+                if (action === 'reject' || action === 'reject_tricycle') {
                     document.getElementById('rejectionReasonInput').value = reason;
                 } else if (action === 'deactivate') {
                     document.getElementById('deactivationReasonInput').value = reason;
+                } else if (action === 'suspend') {
+                    document.getElementById('suspendReasonInput').value = reason;
+                } else if (action === 'reactivate') {
+                    document.getElementById('reactivationReasonInput').value = reason;
                 }
             }
             
             form.submit();
         }
 
-        // ========== CONFIRMATION HANDLER ==========
-        document.getElementById('confirmActionBtn').addEventListener('click', function() {
-            if (currentAction === 'approve') {
-                submitAction('approve', currentDriverId, currentDriverName);
-            } else if (currentAction === 'reject') {
-                submitAction('reject', currentDriverId, currentDriverName, 'Rejected by admin');
-            } else if (currentAction === 'deactivate') {
-                submitAction('deactivate', currentDriverId, currentDriverName);
-            } else if (currentAction === 'suspend') {
-                submitAction('suspend', currentDriverId, currentDriverName);
-            } else if (currentAction === 'reactivate') {
-                submitAction('reactivate', currentDriverId, currentDriverName);
-            }
-            closeModal('confirmationModal');
-        });
-
-        // ========== CLOSE MODALS ON OUTSIDE CLICK ==========
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
-                event.target.classList.remove('active');
-                const rejectError = document.getElementById('rejectError');
-                if (rejectError) rejectError.style.display = 'none';
-                const deactivateError = document.getElementById('deactivateError');
-                if (deactivateError) deactivateError.style.display = 'none';
-                const suspendError = document.getElementById('suspendError');
-                if (suspendError) suspendError.style.display = 'none';
-                isEditMode = false;
+                closeModal(event.target.id);
             }
-        }
+        };
     </script>
 </body>
 </html>

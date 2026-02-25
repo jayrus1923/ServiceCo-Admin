@@ -1,24 +1,10 @@
 <?php
 session_start();
 
-// Get sidebar mode from session
 $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'manual';
 
-// Include sidebar and navbar
 include 'Sidebar.php';
 include 'NavigationBar.php';
-
-// Firebase configuration
-$firebaseConfig = [
-    'apiKey' => 'AIzaSyBpA5CT6Z1U880I8DgMS3pgkeFuKgQPoyk',
-    'authDomain' => 'serviceco-37c60.firebaseapp.com',
-    'databaseURL' => 'https://serviceco-37c60-default-rtdb.firebaseio.com',
-    'projectId' => 'serviceco-37c60',
-    'storageBucket' => 'serviceco-37c60.firebasestorage.app',
-    'messagingSenderId' => '442469956271',
-    'appId' => '1:442469956271:web:0ede934177298b3b74325a',
-    'measurementId' => 'G-12Z059TBGG'
-];
 ?>
 
 <!DOCTYPE html>
@@ -28,12 +14,6 @@ $firebaseConfig = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ServiceCo - App Banner & Announcements</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-    
     <style>
         * {
             margin: 0;
@@ -46,10 +26,9 @@ $firebaseConfig = [
             background-color: #f8f9fa;
             color: #333;
             overflow-x: hidden;
-            user-select: none; /* Prevents text selection during drag */
+            user-select: none;
         }
 
-        /* App Content - WITH AUTO-HIDE SUPPORT */
         .app-content {
             margin-top: 70px;
             padding: 20px;
@@ -59,27 +38,30 @@ $firebaseConfig = [
             min-height: calc(100vh - 70px);
         }
 
-        /* Manual mode - collapsed state */
+        .sidebar.collapsed ~ .navbar,
+        .sidebar.auto-hide ~ .navbar {
+            left: 70px !important;
+        }
+
+        .sidebar.auto-hide:hover ~ .navbar {
+            left: 240px !important;
+        }
+
         .sidebar.collapsed ~ .app-content {
             margin-left: 70px;
             width: calc(100% - 70px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* AUTO-HIDE MODE - NORMAL STATE (collapsed) */
         .sidebar.auto-hide ~ .app-content {
             margin-left: 70px !important;
             width: calc(100% - 70px) !important;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* AUTO-HIDE MODE - HOVER STATE (expanded) */
         .sidebar.auto-hide:hover ~ .app-content {
             margin-left: 240px !important;
             width: calc(100% - 240px) !important;
         }
 
-        /* Welcome Section */
         .welcome-section {
             background-color: white;
             padding: 20px;
@@ -101,7 +83,6 @@ $firebaseConfig = [
             font-size: 14px;
         }
 
-        /* Main Layout - IMPROVED */
         .main-layout {
             display: grid;
             grid-template-columns: 1.8fr 1.2fr;
@@ -116,7 +97,6 @@ $firebaseConfig = [
             }
         }
 
-        /* Banner Management Section - REDESIGNED */
         .banner-section {
             background-color: white;
             border-radius: 8px;
@@ -124,7 +104,7 @@ $firebaseConfig = [
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            max-height: none; /* Remove fixed height */
+            max-height: none;
             height: auto;
         }
 
@@ -182,7 +162,6 @@ $firebaseConfig = [
             color: #6b7280;
         }
 
-        /* Banner Grid - IMPROVED SCROLLING */
         .banner-grid-container {
             padding: 20px;
             flex: 1;
@@ -197,7 +176,6 @@ $firebaseConfig = [
             gap: 15px;
         }
 
-        /* Banner Card - DRAGGABLE */
         .banner-card {
             border: 1px solid #e5e7eb;
             border-radius: 6px;
@@ -248,7 +226,7 @@ $firebaseConfig = [
             width: 100%;
             height: 100%;
             object-fit: cover;
-            pointer-events: none; /* Prevent image dragging */
+            pointer-events: none;
         }
 
         .banner-overlay {
@@ -263,7 +241,7 @@ $firebaseConfig = [
             justify-content: center;
             opacity: 0;
             transition: opacity 0.2s;
-            pointer-events: none; /* Allow clicking through overlay for drag */
+            pointer-events: none;
         }
 
         .banner-card:hover .banner-overlay {
@@ -273,7 +251,7 @@ $firebaseConfig = [
         .banner-actions {
             display: flex;
             gap: 8px;
-            pointer-events: auto; /* Make buttons clickable */
+            pointer-events: auto;
         }
 
         .banner-action-btn {
@@ -300,7 +278,7 @@ $firebaseConfig = [
             padding: 12px;
             flex-shrink: 0;
             border-top: 1px solid #f3f4f6;
-            pointer-events: none; /* Prevent text selection */
+            pointer-events: none;
         }
 
         .banner-title {
@@ -321,7 +299,6 @@ $firebaseConfig = [
             align-items: center;
         }
 
-        /* Order Management - MOVED TO COLLAPSIBLE SECTION */
         .order-management {
             background-color: #f9fafb;
             border-top: 1px solid #e5e7eb;
@@ -489,19 +466,6 @@ $firebaseConfig = [
             border-color: #3b82f6;
         }
 
-        /* Drag handle */
-        .drag-handle {
-            cursor: grab;
-            color: #9ca3af;
-            margin-right: 8px;
-            font-size: 14px;
-        }
-
-        .drag-handle:active {
-            cursor: grabbing;
-        }
-
-        /* Upload Section */
         .upload-section {
             background-color: white;
             border-radius: 8px;
@@ -516,7 +480,6 @@ $firebaseConfig = [
             padding: 20px;
         }
 
-        /* Upload Form */
         .upload-form {
             display: flex;
             flex-direction: column;
@@ -557,7 +520,6 @@ $firebaseConfig = [
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        /* Upload Area */
         .upload-area {
             border: 2px dashed #d1d5db;
             border-radius: 8px;
@@ -606,7 +568,6 @@ $firebaseConfig = [
             cursor: pointer;
         }
 
-        /* Upload Preview */
         .upload-preview {
             margin-top: 15px;
             display: none;
@@ -647,7 +608,6 @@ $firebaseConfig = [
             color: #6b7280;
         }
 
-        /* Date Input */
         .date-input {
             display: flex;
             align-items: center;
@@ -658,7 +618,6 @@ $firebaseConfig = [
             color: #6b7280;
         }
 
-        /* Button Group */
         .button-group {
             display: flex;
             gap: 10px;
@@ -716,7 +675,6 @@ $firebaseConfig = [
             background-color: #dc2626;
         }
 
-        /* Draft Section */
         .draft-section {
             margin-top: 20px;
         }
@@ -826,7 +784,6 @@ $firebaseConfig = [
             font-size: 14px;
         }
 
-        /* Status Toggle */
         .status-toggle {
             display: flex;
             background-color: #f3f4f6;
@@ -853,7 +810,6 @@ $firebaseConfig = [
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
-        /* Success/Error Messages */
         .notification-message {
             position: fixed;
             top: 90px;
@@ -896,7 +852,6 @@ $firebaseConfig = [
             to { opacity: 0; }
         }
 
-        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -943,7 +898,6 @@ $firebaseConfig = [
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: relative;
             flex-shrink: 0;
         }
 
@@ -990,7 +944,6 @@ $firebaseConfig = [
             flex-shrink: 0;
         }
 
-        /* Preview Modal */
         .preview-modal .modal-content {
             max-width: 600px;
         }
@@ -1041,7 +994,6 @@ $firebaseConfig = [
             word-break: break-all;
         }
 
-        /* Delete Modal */
         .delete-modal .confirmation-icon {
             font-size: 48px;
             color: #ef4444;
@@ -1066,7 +1018,6 @@ $firebaseConfig = [
             gap: 5px;
         }
 
-        /* Loading Overlay */
         .loading-overlay {
             display: none;
             position: fixed;
@@ -1098,7 +1049,6 @@ $firebaseConfig = [
             100% { transform: rotate(360deg); }
         }
 
-        /* Footer */
         .footer {
             text-align: center;
             padding: 15px;
@@ -1107,7 +1057,6 @@ $firebaseConfig = [
             margin-top: 20px;
         }
 
-        /* Empty State */
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -1124,7 +1073,6 @@ $firebaseConfig = [
             font-size: 14px;
         }
 
-        /* Upload Status */
         .upload-status {
             margin-top: 10px;
             padding: 10px;
@@ -1151,22 +1099,11 @@ $firebaseConfig = [
             display: block;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .app-content {
                 margin-left: 70px;
                 width: calc(100% - 70px);
                 padding: 15px;
-            }
-            
-            .sidebar.collapsed ~ .app-content {
-                margin-left: 70px;
-                width: calc(100% - 70px);
-            }
-
-            .sidebar.auto-hide ~ .app-content {
-                margin-left: 70px !important;
-                width: calc(100% - 70px) !important;
             }
             
             .main-layout {
@@ -1220,12 +1157,6 @@ $firebaseConfig = [
                 width: 100%;
             }
             
-            .sidebar.collapsed ~ .app-content,
-            .sidebar.auto-hide ~ .app-content {
-                margin-left: 0 !important;
-                width: 100% !important;
-            }
-            
             .section-header {
                 flex-direction: column;
                 gap: 10px;
@@ -1272,16 +1203,14 @@ $firebaseConfig = [
     </style>
 </head>
 <body data-sidebar-mode="<?php echo $sidebarMode; ?>">
+    
     <div class="app-content">
-        <!-- Welcome Section -->
         <div class="welcome-section">
             <h1 class="welcome-title">App Banner & Announcements</h1>
             <p class="welcome-subtitle">Manage the sliding banners and public advisories displayed on the commuter app dashboard.</p>
         </div>
 
-        <!-- Main Layout -->
         <div class="main-layout">
-            <!-- Left Column: Banner Management -->
             <div class="banner-section">
                 <div class="section-header">
                     <div class="section-title">Banner Management</div>
@@ -1295,10 +1224,8 @@ $firebaseConfig = [
                     </div>
                 </div>
 
-                <!-- Banners Grid - Scrollable Container -->
                 <div class="banner-grid-container" id="bannerGridContainer">
                     <div class="banner-grid" id="bannersGrid">
-                        <!-- Banners will be loaded dynamically from Firebase -->
                         <div class="empty-state">
                             <div class="empty-icon">
                                 <i class="fas fa-images"></i>
@@ -1309,7 +1236,6 @@ $firebaseConfig = [
                     </div>
                 </div>
 
-                <!-- Display Order Management - COLLAPSIBLE -->
                 <div class="order-management" id="orderManagement" style="display: none;">
                     <div class="order-header" onclick="toggleOrderSection()">
                         <div class="order-title">
@@ -1322,13 +1248,11 @@ $firebaseConfig = [
                     </div>
                     <div class="order-content" id="orderContent">
                         <div class="order-list" id="orderList">
-                            <!-- Order items will be loaded dynamically -->
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column: Upload New Banner -->
             <div class="upload-section">
                 <div class="section-header">
                     <div class="section-title">Upload New Banner</div>
@@ -1422,7 +1346,6 @@ $firebaseConfig = [
                     </form>
                 </div>
 
-                <!-- Draft Banners Section -->
                 <div class="draft-section">
                     <div class="section-header">
                         <div class="section-title">Draft Banners</div>
@@ -1443,13 +1366,11 @@ $firebaseConfig = [
             </div>
         </div>
 
-        <!-- Footer -->
         <div class="footer">
             <p>ServiceCo App Management &copy; <?php echo date('Y'); ?>. All rights reserved.</p>
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
     <div class="modal delete-modal" id="deleteModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1474,7 +1395,6 @@ $firebaseConfig = [
         </div>
     </div>
 
-    <!-- Preview Modal -->
     <div class="modal preview-modal" id="previewModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1532,35 +1452,18 @@ $firebaseConfig = [
         </div>
     </div>
 
-    <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
     </div>
 
-    <!-- Notification Messages -->
     <div class="notification-message success" id="successMessage"></div>
     <div class="notification-message error" id="errorMessage"></div>
     <div class="notification-message warning" id="warningMessage"></div>
 
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBpA5CT6Z1U880I8DgMS3pgkeFuKgQPoyk",
-            authDomain: "serviceco-37c60.firebaseapp.com",
-            databaseURL: "https://serviceco-37c60-default-rtdb.firebaseio.com",
-            projectId: "serviceco-37c60",
-            storageBucket: "serviceco-37c60.firebasestorage.app",
-            messagingSenderId: "442469956271",
-            appId: "1:442469956271:web:0ede934177298b3b74325a",
-            measurementId: "G-12Z059TBGG"
-        };
+        const database = window.database;
+        const storage = window.storage;
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const storage = firebase.storage();
-
-        // Global variables
         let allBanners = [];
         let currentBannerId = null;
         let currentBannerTitle = null;
@@ -1568,30 +1471,12 @@ $firebaseConfig = [
         let pendingUpload = null;
         let currentFilter = 'active';
         
-        // Drag and drop variables
         let draggedItem = null;
         let draggedItemId = null;
         let dragStartY = 0;
         let dragStartTime = 0;
 
-        // Firebase References
         const bannersRef = database.ref('banners');
-
-        // ============ SIDEBAR INTEGRATION - AUTO-HIDE SUPPORT ============
-        let currentSidebarMode = '<?php echo $sidebarMode; ?>';
-
-        document.addEventListener('sidebarModeChanged', function(e) {
-            currentSidebarMode = e.detail.mode;
-            setTimeout(() => adjustContentPosition(), 50);
-        });
-
-        document.addEventListener('sidebarAutoHide', function(e) {
-            setTimeout(() => adjustContentPosition(), 10);
-        });
-
-        document.addEventListener('sidebarToggled', function(e) {
-            setTimeout(() => adjustContentPosition(), 10);
-        });
 
         function adjustContentPosition() {
             const sidebar = document.getElementById('sidebar');
@@ -1612,84 +1497,54 @@ $firebaseConfig = [
             
             content.style.marginLeft = sidebarWidth + 'px';
             content.style.width = `calc(100% - ${sidebarWidth}px)`;
-            content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            
-            void content.offsetWidth;
-        }
-
-        if (typeof window.updateAllPositions === 'function') {
-            const originalUpdateAllPositions = window.updateAllPositions;
-            window.updateAllPositions = function() {
-                originalUpdateAllPositions();
-                adjustContentPosition();
-            };
         }
 
         window.adjustContentPosition = adjustContentPosition;
-        // ============ END SIDEBAR INTEGRATION ============
 
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', function() {
-            setDefaultExpiryDate();
-            setupEventListeners();
-            loadBanners();
-            setupRealtimeListeners();
-            
-            setTimeout(() => adjustContentPosition(), 100);
-            
-            setInterval(() => {
-                const sidebar = document.getElementById('sidebar');
-                if (sidebar) {
-                    const currentClasses = sidebar.className;
-                    if (window.lastSidebarClasses !== currentClasses) {
-                        window.lastSidebarClasses = currentClasses;
-                        adjustContentPosition();
-                    }
-                }
-            }, 100);
-        });
-
-        // Set default expiry date
         function setDefaultExpiryDate() {
             const today = new Date();
             const nextWeek = new Date(today);
             nextWeek.setDate(today.getDate() + 7);
-            document.getElementById('expiryDate').value = nextWeek.toISOString().split('T')[0];
+            const expiryInput = document.getElementById('expiryDate');
+            if (expiryInput) {
+                expiryInput.value = nextWeek.toISOString().split('T')[0];
+            }
         }
 
-        // Setup event listeners
         function setupEventListeners() {
-            // Drag and drop
             const uploadArea = document.getElementById('uploadArea');
             const fileInput = document.getElementById('bannerFile');
 
-            uploadArea.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
+            if (uploadArea) {
+                uploadArea.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
 
-            uploadArea.addEventListener('dragleave', function(e) {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-            });
+                uploadArea.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                });
 
-            uploadArea.addEventListener('drop', function(e) {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                
-                if (e.dataTransfer.files.length) {
-                    fileInput.files = e.dataTransfer.files;
-                    handleFileSelect({ target: fileInput });
-                }
-            });
+                uploadArea.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    
+                    if (e.dataTransfer.files.length) {
+                        fileInput.files = e.dataTransfer.files;
+                        handleFileSelect({ target: fileInput });
+                    }
+                });
+            }
 
-            // Form submission
-            document.getElementById('bannerUploadForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                await processFormSubmission();
-            });
+            const form = document.getElementById('bannerUploadForm');
+            if (form) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await processFormSubmission();
+                });
+            }
 
-            // Modal click outside
             document.querySelectorAll('.modal').forEach(modal => {
                 modal.addEventListener('click', function(e) {
                     if (e.target === this) {
@@ -1698,7 +1553,6 @@ $firebaseConfig = [
                 });
             });
 
-            // Escape key to close modals
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     closeAllModals();
@@ -1706,7 +1560,6 @@ $firebaseConfig = [
             });
         }
 
-        // Load banners from Firebase
         function loadBanners() {
             showLoading(true);
             
@@ -1727,12 +1580,12 @@ $firebaseConfig = [
                     showLoading(false);
                 })
                 .catch(error => {
+                    console.error('Error loading banners:', error);
                     showNotification('Error loading banners: ' + error.message, 'error');
                     showLoading(false);
                 });
         }
 
-        // Setup realtime listeners
         function setupRealtimeListeners() {
             bannersRef.on('child_added', (snapshot) => {
                 const banner = snapshot.val();
@@ -1767,7 +1620,6 @@ $firebaseConfig = [
             });
         }
 
-        // Update UI based on current data
         function updateUI() {
             updateBannersGrid();
             updateOrderList();
@@ -1775,9 +1627,9 @@ $firebaseConfig = [
             updateCounts();
         }
 
-        // Update banners grid
         function updateBannersGrid() {
             const bannersGrid = document.getElementById('bannersGrid');
+            if (!bannersGrid) return;
             
             let filteredBanners = [];
             if (currentFilter === 'active') {
@@ -1788,7 +1640,6 @@ $firebaseConfig = [
                 filteredBanners = allBanners.filter(b => b.status === 'active' || b.status === 'inactive');
             }
             
-            // Sort active banners by display order
             filteredBanners.sort((a, b) => {
                 if (a.status === 'active' && b.status === 'active') {
                     return (a.display_order || 0) - (b.display_order || 0);
@@ -1816,13 +1667,11 @@ $firebaseConfig = [
                 bannersGrid.appendChild(bannerCard);
             });
             
-            // Initialize drag and drop for active banners
             if (currentFilter === 'active') {
                 initializeDragAndDrop();
             }
         }
 
-        // Create banner card element
         function createBannerCard(banner) {
             const card = document.createElement('div');
             card.className = 'banner-card';
@@ -1872,10 +1721,8 @@ $firebaseConfig = [
             return card;
         }
 
-        // Initialize drag and drop functionality
         function initializeDragAndDrop() {
             const draggables = document.querySelectorAll('.banner-card[draggable="true"]');
-            const grid = document.getElementById('bannersGrid');
             
             draggables.forEach(draggable => {
                 draggable.removeEventListener('dragstart', handleDragStart);
@@ -1903,7 +1750,6 @@ $firebaseConfig = [
             dragStartY = e.clientY;
             dragStartTime = Date.now();
             
-            // Prevent text selection during drag
             document.body.style.userSelect = 'none';
         }
 
@@ -1942,7 +1788,6 @@ $firebaseConfig = [
             const dropTarget = this;
             const dropTargetId = dropTarget.dataset.id;
             
-            // Get all active banner cards
             const activeBanners = allBanners.filter(b => b.status === 'active')
                 .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
             
@@ -1954,7 +1799,6 @@ $firebaseConfig = [
             const draggedOrder = draggedBanner.display_order || 0;
             const dropOrder = dropBanner.display_order || 0;
             
-            // Update orders
             const updates = {};
             
             activeBanners.forEach(banner => {
@@ -1971,24 +1815,28 @@ $firebaseConfig = [
                 await bannersRef.update(updates);
                 showNotification('Banner order updated!', 'success');
             } catch (error) {
+                console.error('Error updating banner order:', error);
                 showNotification('Error updating banner order: ' + error.message, 'error');
             }
         }
 
-        // Toggle order section
         function toggleOrderSection() {
             const orderContent = document.getElementById('orderContent');
             const orderToggle = document.querySelector('.order-toggle i');
             
-            orderContent.classList.toggle('collapsed');
-            orderToggle.classList.toggle('fa-chevron-down');
-            orderToggle.classList.toggle('fa-chevron-right');
+            if (orderContent && orderToggle) {
+                orderContent.classList.toggle('collapsed');
+                orderToggle.classList.toggle('fa-chevron-down');
+                orderToggle.classList.toggle('fa-chevron-right');
+            }
         }
 
-        // Update order list
         function updateOrderList() {
             const orderManagement = document.getElementById('orderManagement');
             const orderList = document.getElementById('orderList');
+            
+            if (!orderManagement || !orderList) return;
+            
             const activeBanners = allBanners.filter(b => b.status === 'active')
                 .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
             
@@ -2007,7 +1855,6 @@ $firebaseConfig = [
             });
         }
 
-        // Create order item
         function createOrderItem(banner) {
             const item = document.createElement('div');
             item.className = 'order-item';
@@ -2039,9 +1886,10 @@ $firebaseConfig = [
             return item;
         }
 
-        // Update draft list
         function updateDraftList() {
             const draftList = document.getElementById('draftList');
+            if (!draftList) return;
+            
             const draftBanners = allBanners.filter(b => b.status === 'draft');
             
             draftList.innerHTML = '';
@@ -2062,7 +1910,6 @@ $firebaseConfig = [
             });
         }
 
-        // Create draft item
         function createDraftItem(draft) {
             const item = document.createElement('div');
             item.className = 'draft-item';
@@ -2092,24 +1939,28 @@ $firebaseConfig = [
             return item;
         }
 
-        // Update counts
         function updateCounts() {
             const activeCount = allBanners.filter(b => b.status === 'active').length;
             const draftCount = allBanners.filter(b => b.status === 'draft').length;
             const inactiveCount = allBanners.filter(b => b.status === 'inactive').length;
             
-            if (currentFilter === 'all') {
-                document.getElementById('bannerCount').textContent = `${activeCount + inactiveCount} Banners`;
-            } else if (currentFilter === 'active') {
-                document.getElementById('bannerCount').textContent = `${activeCount} Active`;
-            } else {
-                document.getElementById('bannerCount').textContent = `${inactiveCount} Inactive`;
+            const bannerCountEl = document.getElementById('bannerCount');
+            if (bannerCountEl) {
+                if (currentFilter === 'all') {
+                    bannerCountEl.textContent = `${activeCount + inactiveCount} Banners`;
+                } else if (currentFilter === 'active') {
+                    bannerCountEl.textContent = `${activeCount} Active`;
+                } else {
+                    bannerCountEl.textContent = `${inactiveCount} Inactive`;
+                }
             }
             
-            document.getElementById('draftCount').textContent = `${draftCount} Draft${draftCount !== 1 ? 's' : ''}`;
+            const draftCountEl = document.getElementById('draftCount');
+            if (draftCountEl) {
+                draftCountEl.textContent = `${draftCount} Draft${draftCount !== 1 ? 's' : ''}`;
+            }
         }
 
-        // Filter banners
         function filterBanners(status) {
             currentFilter = status;
             
@@ -2120,7 +1971,6 @@ $firebaseConfig = [
             updateCounts();
         }
 
-        // Handle file selection
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -2151,20 +2001,22 @@ $firebaseConfig = [
                     const previewFileSize = document.getElementById('previewFileSize');
                     const previewDimensions = document.getElementById('previewDimensions');
 
-                    previewFileName.textContent = file.name;
-                    previewFileSize.textContent = formatFileSize(file.size);
-                    previewDimensions.textContent = `${width}×${height}px`;
-                    
-                    if (width !== 1080 || height !== 540) {
-                        previewDimensions.style.color = '#f59e0b';
-                        previewDimensions.style.fontWeight = 'bold';
-                    } else {
-                        previewDimensions.style.color = '#10b981';
-                        previewDimensions.style.fontWeight = 'bold';
-                    }
+                    if (preview && previewImage && previewFileName && previewFileSize && previewDimensions) {
+                        previewFileName.textContent = file.name;
+                        previewFileSize.textContent = formatFileSize(file.size);
+                        previewDimensions.textContent = `${width}×${height}px`;
+                        
+                        if (width !== 1080 || height !== 540) {
+                            previewDimensions.style.color = '#f59e0b';
+                            previewDimensions.style.fontWeight = 'bold';
+                        } else {
+                            previewDimensions.style.color = '#10b981';
+                            previewDimensions.style.fontWeight = 'bold';
+                        }
 
-                    previewImage.src = e.target.result;
-                    preview.style.display = 'block';
+                        previewImage.src = e.target.result;
+                        preview.style.display = 'block';
+                    }
                     
                     currentPreviewImage = {
                         src: e.target.result,
@@ -2180,20 +2032,20 @@ $firebaseConfig = [
             reader.readAsDataURL(file);
         }
 
-        // Reset file input
         function resetFileInput() {
             document.getElementById('bannerFile').value = '';
             resetPreview();
         }
 
-        // Reset preview
         function resetPreview() {
-            document.getElementById('uploadPreview').style.display = 'none';
+            const preview = document.getElementById('uploadPreview');
+            if (preview) {
+                preview.style.display = 'none';
+            }
             currentPreviewImage = null;
             pendingUpload = null;
         }
 
-        // Process form submission
         async function processFormSubmission() {
             const title = document.getElementById('bannerTitle').value.trim();
             const file = document.getElementById('bannerFile').files[0];
@@ -2219,7 +2071,6 @@ $firebaseConfig = [
             await createBanner(title, file, redirectLink, expiryDate, 'active');
         }
 
-        // Create new banner
         async function createBanner(title, file, redirectLink, expiryDate, status) {
             showLoading(true);
             
@@ -2262,13 +2113,13 @@ $firebaseConfig = [
                 }
                 
             } catch (error) {
+                console.error('Error saving banner:', error);
                 showNotification('Error saving banner: ' + error.message, 'error');
             } finally {
                 showLoading(false);
             }
         }
 
-        // Update existing banner
         async function updateBanner(bannerId, title, file, redirectLink, expiryDate, status) {
             showLoading(true);
             
@@ -2327,19 +2178,21 @@ $firebaseConfig = [
                 showNotification(`Banner "${title}" updated successfully!`, 'success');
                 
             } catch (error) {
+                console.error('Error updating banner:', error);
                 showNotification('Error updating banner: ' + error.message, 'error');
             } finally {
                 showLoading(false);
             }
         }
 
-        // Upload image to Firebase Storage
         async function uploadImageToStorage(file, bannerId) {
             return new Promise((resolve, reject) => {
                 const uploadStatus = document.getElementById('uploadStatus');
-                uploadStatus.textContent = 'Uploading image...';
-                uploadStatus.className = 'upload-status uploading';
-                uploadStatus.style.display = 'block';
+                if (uploadStatus) {
+                    uploadStatus.textContent = 'Uploading image...';
+                    uploadStatus.className = 'upload-status uploading';
+                    uploadStatus.style.display = 'block';
+                }
                 
                 const storageRef = storage.ref();
                 const imageRef = storageRef.child(`banners/${bannerId}/${file.name}`);
@@ -2349,22 +2202,28 @@ $firebaseConfig = [
                 uploadTask.on('state_changed',
                     (snapshot) => {
                         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        uploadStatus.textContent = `Uploading: ${Math.round(progress)}%`;
+                        if (uploadStatus) {
+                            uploadStatus.textContent = `Uploading: ${Math.round(progress)}%`;
+                        }
                     },
                     (error) => {
-                        uploadStatus.className = 'upload-status error';
-                        uploadStatus.textContent = 'Upload failed';
+                        if (uploadStatus) {
+                            uploadStatus.className = 'upload-status error';
+                            uploadStatus.textContent = 'Upload failed';
+                        }
                         reject(error);
                     },
                     async () => {
                         const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
                         
-                        uploadStatus.className = 'upload-status success';
-                        uploadStatus.textContent = 'Upload complete!';
-                        
-                        setTimeout(() => {
-                            uploadStatus.style.display = 'none';
-                        }, 2000);
+                        if (uploadStatus) {
+                            uploadStatus.className = 'upload-status success';
+                            uploadStatus.textContent = 'Upload complete!';
+                            
+                            setTimeout(() => {
+                                uploadStatus.style.display = 'none';
+                            }, 2000);
+                        }
                         
                         resolve(downloadURL);
                     }
@@ -2372,7 +2231,6 @@ $firebaseConfig = [
             });
         }
 
-        // Save as draft
         async function saveAsDraft() {
             const title = document.getElementById('bannerTitle').value.trim();
             const file = document.getElementById('bannerFile').files[0];
@@ -2397,7 +2255,6 @@ $firebaseConfig = [
             await createBanner(title, file, redirectLink, expiryDate, 'draft');
         }
 
-        // Use draft
         function useDraft(draftId) {
             const draft = allBanners.find(b => b.id === draftId && b.status === 'draft');
             if (!draft) {
@@ -2422,17 +2279,18 @@ $firebaseConfig = [
                 const previewFileSize = document.getElementById('previewFileSize');
                 const previewDimensions = document.getElementById('previewDimensions');
                 
-                previewImage.src = draft.imageUrl;
-                previewFileName.textContent = 'Current Image';
-                previewFileSize.textContent = draft.file_size || 'Unknown';
-                previewDimensions.textContent = draft.dimensions || '1080×540';
-                preview.style.display = 'block';
+                if (preview && previewImage && previewFileName && previewFileSize && previewDimensions) {
+                    previewImage.src = draft.imageUrl;
+                    previewFileName.textContent = 'Current Image';
+                    previewFileSize.textContent = draft.file_size || 'Unknown';
+                    previewDimensions.textContent = draft.dimensions || '1080×540';
+                    preview.style.display = 'block';
+                }
             }
             
             showNotification('Draft loaded. Click "Publish Draft" to publish it.', 'success');
         }
 
-        // Publish draft
         async function publishDraft() {
             const bannerId = document.getElementById('currentBannerId').value;
             const title = document.getElementById('bannerTitle').value.trim();
@@ -2442,7 +2300,6 @@ $firebaseConfig = [
             await updateBanner(bannerId, title, null, redirectLink, expiryDate, 'active');
         }
 
-        // Edit draft
         function editDraft(draftId) {
             const draft = allBanners.find(b => b.id === draftId && b.status === 'draft');
             if (!draft) {
@@ -2467,17 +2324,18 @@ $firebaseConfig = [
                 const previewFileSize = document.getElementById('previewFileSize');
                 const previewDimensions = document.getElementById('previewDimensions');
                 
-                previewImage.src = draft.imageUrl;
-                previewFileName.textContent = 'Current Image';
-                previewFileSize.textContent = draft.file_size || 'Unknown';
-                previewDimensions.textContent = draft.dimensions || '1080×540';
-                preview.style.display = 'block';
+                if (preview && previewImage && previewFileName && previewFileSize && previewDimensions) {
+                    previewImage.src = draft.imageUrl;
+                    previewFileName.textContent = 'Current Image';
+                    previewFileSize.textContent = draft.file_size || 'Unknown';
+                    previewDimensions.textContent = draft.dimensions || '1080×540';
+                    preview.style.display = 'block';
+                }
             }
             
             showNotification('Draft loaded for editing.', 'success');
         }
 
-        // Update draft
         async function updateDraft() {
             const bannerId = document.getElementById('currentBannerId').value;
             const title = document.getElementById('bannerTitle').value.trim();
@@ -2488,19 +2346,16 @@ $firebaseConfig = [
             await updateBanner(bannerId, title, file, redirectLink, expiryDate, 'draft');
         }
 
-        // Cancel use draft
         function cancelUseDraft() {
             resetForm();
             showNotification('Cancelled', 'warning');
         }
 
-        // Cancel edit
         function cancelEdit() {
             resetForm();
             showNotification('Edit cancelled', 'warning');
         }
 
-        // Reset form
         function resetForm() {
             document.getElementById('bannerUploadForm').reset();
             document.getElementById('currentBannerId').value = '';
@@ -2512,10 +2367,12 @@ $firebaseConfig = [
             document.getElementById('useDraftButtonGroup').style.display = 'none';
             document.getElementById('editDraftButtonGroup').style.display = 'none';
             
-            document.getElementById('uploadStatus').style.display = 'none';
+            const uploadStatus = document.getElementById('uploadStatus');
+            if (uploadStatus) {
+                uploadStatus.style.display = 'none';
+            }
         }
 
-        // Toggle banner status
         async function toggleBannerStatus(bannerId, newStatus) {
             try {
                 const bannerRef = bannersRef.child(bannerId);
@@ -2544,17 +2401,16 @@ $firebaseConfig = [
                 showNotification(`Banner ${newStatus === 'active' ? 'activated' : 'deactivated'}!`, 'success');
                 
             } catch (error) {
+                console.error('Error updating banner status:', error);
                 showNotification('Error updating banner status: ' + error.message, 'error');
             }
         }
 
-        // Show delete modal
         function showDeleteModal(bannerId) {
             currentBannerId = bannerId;
             showModal('deleteModal');
         }
 
-        // Confirm delete
         async function confirmDelete() {
             showLoading(true);
             
@@ -2583,13 +2439,13 @@ $firebaseConfig = [
                 }
                 
             } catch (error) {
+                console.error('Error deleting banner:', error);
                 showNotification('Error deleting: ' + error.message, 'error');
             } finally {
                 showLoading(false);
             }
         }
 
-        // Update banner order
         async function updateBannerOrder(bannerId, newOrder) {
             newOrder = parseInt(newOrder);
             
@@ -2631,11 +2487,11 @@ $firebaseConfig = [
                 showNotification('Display order updated!', 'success');
                 
             } catch (error) {
+                console.error('Error updating display order:', error);
                 showNotification('Error updating display order: ' + error.message, 'error');
             }
         }
 
-        // Move banner up
         async function moveBannerUp(bannerId) {
             const banner = allBanners.find(b => b.id === bannerId && b.status === 'active');
             if (!banner || !banner.display_order || banner.display_order <= 1) return;
@@ -2643,7 +2499,6 @@ $firebaseConfig = [
             await updateBannerOrder(bannerId, banner.display_order - 1);
         }
 
-        // Move banner down
         async function moveBannerDown(bannerId) {
             const banner = allBanners.find(b => b.id === bannerId && b.status === 'active');
             if (!banner || !banner.display_order) return;
@@ -2654,7 +2509,6 @@ $firebaseConfig = [
             await updateBannerOrder(bannerId, banner.display_order + 1);
         }
 
-        // View banner preview
         function viewBannerPreview(bannerId) {
             const banner = allBanners.find(b => b.id === bannerId);
             if (!banner) {
@@ -2662,22 +2516,33 @@ $firebaseConfig = [
                 return;
             }
 
-            document.getElementById('modalPreviewImage').src = banner.imageUrl || 
-                'https://via.placeholder.com/1080x540/3b82f6/ffffff?text=' + encodeURIComponent(banner.title);
-            document.getElementById('modalFileName').textContent = banner.title + ' Banner';
-            document.getElementById('modalCampaignTitle').textContent = banner.title;
-            document.getElementById('modalExpiryDate').textContent = banner.expiry_date || 'Not set';
-            document.getElementById('modalDimensions').textContent = banner.dimensions || '1080×540';
-            document.getElementById('modalFileSize').textContent = banner.file_size || 'Unknown';
-            document.getElementById('modalStatus').textContent = banner.status.charAt(0).toUpperCase() + banner.status.slice(1);
-            document.getElementById('modalUploadDate').textContent = formatDate(banner.created_at) || 'Unknown';
-            document.getElementById('modalClicks').textContent = banner.clicks ? banner.clicks.toLocaleString() : '0';
-            document.getElementById('modalRedirectLink').textContent = banner.redirect_link || 'None';
+            const modalPreviewImage = document.getElementById('modalPreviewImage');
+            const modalFileName = document.getElementById('modalFileName');
+            const modalCampaignTitle = document.getElementById('modalCampaignTitle');
+            const modalExpiryDate = document.getElementById('modalExpiryDate');
+            const modalDimensions = document.getElementById('modalDimensions');
+            const modalFileSize = document.getElementById('modalFileSize');
+            const modalStatus = document.getElementById('modalStatus');
+            const modalUploadDate = document.getElementById('modalUploadDate');
+            const modalClicks = document.getElementById('modalClicks');
+            const modalRedirectLink = document.getElementById('modalRedirectLink');
+
+            if (modalPreviewImage) {
+                modalPreviewImage.src = banner.imageUrl || 'https://via.placeholder.com/1080x540/3b82f6/ffffff?text=' + encodeURIComponent(banner.title);
+            }
+            if (modalFileName) modalFileName.textContent = banner.title + ' Banner';
+            if (modalCampaignTitle) modalCampaignTitle.textContent = banner.title;
+            if (modalExpiryDate) modalExpiryDate.textContent = banner.expiry_date || 'Not set';
+            if (modalDimensions) modalDimensions.textContent = banner.dimensions || '1080×540';
+            if (modalFileSize) modalFileSize.textContent = banner.file_size || 'Unknown';
+            if (modalStatus) modalStatus.textContent = banner.status.charAt(0).toUpperCase() + banner.status.slice(1);
+            if (modalUploadDate) modalUploadDate.textContent = formatDate(banner.created_at) || 'Unknown';
+            if (modalClicks) modalClicks.textContent = banner.clicks ? banner.clicks.toLocaleString() : '0';
+            if (modalRedirectLink) modalRedirectLink.textContent = banner.redirect_link || 'None';
             
             showModal('previewModal');
         }
 
-        // Generate order options
         function generateOrderOptions(count, selected) {
             let options = '';
             for (let i = 1; i <= count; i++) {
@@ -2686,7 +2551,6 @@ $firebaseConfig = [
             return options;
         }
 
-        // Format file size
         function formatFileSize(bytes) {
             if (typeof bytes !== 'number') return 'Unknown';
             if (bytes === 0) return '0 Bytes';
@@ -2696,7 +2560,6 @@ $firebaseConfig = [
             return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
 
-        // Format date
         function formatDate(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
@@ -2709,15 +2572,20 @@ $firebaseConfig = [
             });
         }
 
-        // Modal functions
         function showModal(modalId) {
-            document.getElementById(modalId).classList.add('active');
-            document.body.style.overflow = 'hidden';
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
         }
 
         function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-            document.body.style.overflow = 'auto';
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
         }
 
         function closeAllModals() {
@@ -2727,21 +2595,51 @@ $firebaseConfig = [
             document.body.style.overflow = 'auto';
         }
 
-        // Show loading overlay
         function showLoading(show) {
-            document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.style.display = show ? 'flex' : 'none';
+            }
         }
 
-        // Show notification
         function showNotification(message, type) {
             const notification = document.getElementById(type + 'Message');
-            notification.textContent = message;
-            notification.style.display = 'block';
-            
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 3000);
+            if (notification) {
+                notification.textContent = message;
+                notification.style.display = 'block';
+                
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 3000);
+            }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setDefaultExpiryDate();
+            setupEventListeners();
+            loadBanners();
+            setupRealtimeListeners();
+            
+            setTimeout(() => adjustContentPosition(), 100);
+        });
+
+        window.filterBanners = filterBanners;
+        window.toggleOrderSection = toggleOrderSection;
+        window.handleFileSelect = handleFileSelect;
+        window.saveAsDraft = saveAsDraft;
+        window.cancelUseDraft = cancelUseDraft;
+        window.cancelEdit = cancelEdit;
+        window.publishDraft = publishDraft;
+        window.updateDraft = updateDraft;
+        window.toggleBannerStatus = toggleBannerStatus;
+        window.showDeleteModal = showDeleteModal;
+        window.confirmDelete = confirmDelete;
+        window.viewBannerPreview = viewBannerPreview;
+        window.updateBannerOrder = updateBannerOrder;
+        window.moveBannerUp = moveBannerUp;
+        window.moveBannerDown = moveBannerDown;
+        window.closeModal = closeModal;
+        window.closeAllModals = closeAllModals;
     </script>
 </body>
 </html>

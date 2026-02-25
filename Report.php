@@ -1,8 +1,6 @@
 <?php
-// Reports.php - WITH SIDEBAR SYSTEM
 session_start();
 
-// Get current sidebar mode from session
 $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'manual';
 ?>
 <!DOCTYPE html>
@@ -28,7 +26,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             overflow-x: hidden;
         }
 
-        /* Reports Content */
         .reports-content {
             margin-top: 70px;
             padding: 25px;
@@ -44,13 +41,44 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             width: calc(100% - 70px);
         }
 
-        /* IMPORTANT: FIXED - Direct sibling selector for auto-hide hover */
         .sidebar.auto-hide:hover ~ .reports-content {
             margin-left: 240px !important;
             width: calc(100% - 240px) !important;
         }
 
-        /* Welcome Section */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .loading-overlay.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #347433;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .welcome-section {
             background-color: white;
             padding: 20px;
@@ -72,21 +100,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             font-size: 14px;
         }
 
-        /* Main Layout */
-        .main-layout {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 992px) {
-            .main-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Statistics Cards */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -100,12 +113,19 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             padding: 15px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             text-align: center;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         .stat-value {
             font-size: 28px;
             font-weight: 600;
-            color: #333;
+            color: #347433;
             margin-bottom: 5px;
         }
 
@@ -114,20 +134,23 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             color: #666;
         }
 
-        /* Search and Filter Section */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 992px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+
         .filter-section {
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             padding: 20px;
             margin-bottom: 20px;
-        }
-
-        .filter-title {
-            font-size: 14px;
-            font-weight: 500;
-            color: #333;
-            margin-bottom: 12px;
         }
 
         .filter-group {
@@ -150,10 +173,87 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
 
         .filter-select:focus {
             outline: none;
-            border-color: #3b82f6;
+            border-color: #347433;
         }
 
-        /* Table Container */
+        .filter-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #347433;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: #347433;
+            text-decoration: none;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2d6a2d;
+        }
+
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-warning {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #d97706;
+        }
+
+        .btn-success {
+            background-color: #347433;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #2d6a2d;
+        }
+
         .table-container {
             background-color: white;
             border-radius: 8px;
@@ -177,34 +277,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             color: #333;
         }
 
-        .search-box {
-            position: relative;
-            width: 200px;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 8px 12px 8px 35px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 13px;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #999;
-            font-size: 14px;
-        }
-
-        /* Table Design */
         .data-table {
             width: 100%;
             border-collapse: collapse;
@@ -237,7 +309,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             cursor: pointer;
         }
 
-        /* Status badges */
         .status-badge {
             display: inline-block;
             padding: 4px 10px;
@@ -256,15 +327,32 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             color: #347433;
         }
 
-        /* Action buttons in table */
+        .type-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .type-badge.commuter {
+            background-color: #e0f2fe;
+            color: #0284c7;
+        }
+
+        .type-badge.driver {
+            background-color: #ffe4e6;
+            color: #e11d48;
+        }
+
         .action-btn {
-            padding: 4px 8px;
+            padding: 6px 12px;
             border-radius: 4px;
             font-size: 12px;
             font-weight: 500;
             cursor: pointer;
             border: none;
-            background-color: #3b82f6;
+            background-color: #347433;
             color: white;
             display: inline-flex;
             align-items: center;
@@ -273,10 +361,22 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         }
 
         .action-btn:hover {
-            background-color: #2563eb;
+            background-color: #2d6a2d;
         }
 
-        /* Report Generation Section */
+        .action-btn.small {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+
+        .action-btn.danger {
+            background-color: #ef4444;
+        }
+
+        .action-btn.danger:hover {
+            background-color: #dc2626;
+        }
+
         .report-generation {
             background-color: white;
             border-radius: 8px;
@@ -298,13 +398,19 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             gap: 12px;
         }
 
+        .report-option-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
         .report-option {
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .report-option input[type="checkbox"] {
+        .report-option input[type="radio"] {
             width: 16px;
             height: 16px;
             cursor: pointer;
@@ -349,15 +455,15 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         }
 
         .generate-btn:hover {
-            background-color: #347433;
+            background-color: #2d6a2d;
         }
 
-        /* Chart Section */
         .chart-section {
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             padding: 20px;
+            margin-bottom: 20px;
         }
 
         .chart-title {
@@ -373,13 +479,11 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             width: 100%;
         }
 
-        /* Category Breakdown */
         .category-breakdown {
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             padding: 20px;
-            margin-top: 20px;
         }
 
         .category-list {
@@ -392,22 +496,17 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
+            padding: 12px;
             background-color: #f9fafb;
             border-radius: 6px;
-            border-left: 4px solid #3b82f6;
+            border-left: 4px solid #347433;
+            transition: all 0.2s;
+            cursor: pointer;
         }
 
-        .category-item.overcharging {
-            border-left-color: #ef4444;
-        }
-
-        .category-item.rudeness {
-            border-left-color: #f59e0b;
-        }
-
-        .category-item.reckless {
-            border-left-color: #347433;
+        .category-item:hover {
+            transform: translateX(2px);
+            background-color: #f0fdf4;
         }
 
         .category-name {
@@ -426,7 +525,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             border: 1px solid #e5e7eb;
         }
 
-        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -451,12 +549,12 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             background-color: white;
             width: 90%;
             max-width: 700px;
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
-            max-height: 90vh;
+            max-height: 100vh;
             transform: translateY(-20px);
             transition: transform 0.3s ease;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
 
         .modal.active .modal-content {
@@ -464,76 +562,67 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         }
 
         .modal-header {
-            padding: 18px 20px;
-            background-color: #f9fafb;
-            border-bottom: 1px solid #e5e7eb;
+            padding: 20px 25px;
+            background-color: #347433;
+            color: white;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: relative;
         }
 
         .modal-header h3 {
             margin: 0;
             font-weight: 600;
-            font-size: 16px;
-            color: #333;
+            font-size: 18px;
         }
 
         .modal-close {
-            background: none;
+            background: rgba(255,255,255,0.2);
             border: none;
-            color: #6b7280;
-            font-size: 20px;
+            color: white;
+            font-size: 22px;
             cursor: pointer;
-            width: 24px;
-            height: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            padding: 0;
-            line-height: 1;
+            transition: all 0.2s;
         }
 
         .modal-close:hover {
-            color: #374151;
+            background: rgba(255,255,255,0.3);
         }
 
         .modal-body {
-            padding: 20px;
+            padding: 30px;
             overflow-y: auto;
             max-height: calc(90vh - 130px);
         }
 
         .modal-footer {
-            padding: 15px 20px;
+            padding: 20px 25px;
             background-color: #f9fafb;
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
+            gap: 15px;
             border-top: 1px solid #e5e7eb;
         }
 
-        /* Complaint Details */
         .complaint-details {
             display: grid;
-            gap: 20px;
+            gap: 25px;
         }
 
         .detail-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 25px;
         }
 
         @media (max-width: 768px) {
-            .detail-row {
-                grid-template-columns: 1fr;
-            }
+            .detail-row { grid-template-columns: 1fr; }
         }
 
         .detail-group {
@@ -553,125 +642,191 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         .detail-value {
             font-size: 14px;
             color: #333;
-            padding: 10px;
+            padding: 12px 15px;
             background-color: #f9fafb;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
+            word-break: break-word;
+            line-height: 1.5;
         }
 
         .description-box {
             grid-column: 1 / -1;
         }
 
-        .description-box .detail-value {
-            min-height: 100px;
-            resize: vertical;
-            font-family: inherit;
-        }
-
-        /* Attachment */
         .attachment-box {
             grid-column: 1 / -1;
         }
 
-        .attachment-preview {
-            margin-top: 10px;
-            padding: 15px;
+        .attachment-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .attachment-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 20px;
             background-color: #f9fafb;
-            border-radius: 6px;
-            border: 1px dashed #e5e7eb;
-            text-align: center;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+
+        .attachment-item:hover {
+            background-color: #f0fdf4;
+            border-color: #347433;
         }
 
         .attachment-icon {
-            font-size: 36px;
-            color: #9ca3af;
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            background-color: #f0fdf4;
+            color: #347433;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .attachment-info {
+            flex: 1;
+        }
+
+        .attachment-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .attachment-meta {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .preview-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            background-color: #347433;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .preview-btn:hover {
+            background-color: #2d6a2d;
+            transform: translateY(-1px);
+        }
+
+        .preview-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+
+        .pagination {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .pagination-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            color: #666;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            min-width: 36px;
+            text-align: center;
+        }
+
+        .pagination-btn:hover {
+            border-color: #347433;
+            color: #347433;
+            background-color: #f0fdf4;
+        }
+
+        .pagination-btn.active {
+            background-color: #347433;
+            color: white;
+            border-color: #347433;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .confirmation-modal {
+            max-width: 400px;
+        }
+        
+        .confirmation-icon {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .confirmation-icon .fa-check-circle {
+            color: #347433;
+        }
+        
+        .confirmation-icon .fa-undo {
+            color: #f59e0b;
+        }
+        
+        .confirmation-icon .fa-exclamation-triangle {
+            color: #ef4444;
+        }
+        
+        .confirmation-title {
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .confirmation-message {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 48px;
             margin-bottom: 10px;
         }
 
-        /* Buttons */
-        .btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            font-size: 13px;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-primary {
-            background-color: #347433;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: #347433;
-        }
-
-        .btn-secondary {
-            background-color: #e5e7eb;
-            color: #4b5563;
-        }
-
-        .btn-secondary:hover {
-            background-color: #d1d5db;
-        }
-
-        .btn-danger {
-            background-color: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background-color: #dc2626;
-        }
-
-        /* Success/Error Messages */
-        .success-message {
-            display: none;
-            position: fixed;
-            top: 90px;
-            right: 25px;
-            background-color: #347433;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-            z-index: 1000;
-            animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
-            font-size: 13px;
-        }
-
-        .error-message {
-            display: none;
-            position: fixed;
-            top: 90px;
-            right: 25px;
-            background-color: #ef4444;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-            z-index: 1000;
-            animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
-            font-size: 13px;
-        }
-
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-
-        /* Footer */
         .footer {
             text-align: center;
             padding: 15px;
@@ -680,7 +835,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             margin-top: 20px;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .reports-content {
                 margin-left: 70px;
@@ -688,34 +842,18 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 padding: 15px;
             }
             
-            .sidebar.collapsed ~ .reports-content,
-            .sidebar.auto-hide ~ .reports-content {
-                margin-left: 70px;
-                width: calc(100% - 70px);
-            }
-            
-            .sidebar.auto-hide:hover ~ .reports-content {
-                margin-left: 240px !important;
-                width: calc(100% - 240px) !important;
-            }
-            
             .filter-group {
                 flex-direction: column;
                 align-items: stretch;
             }
             
-            .filter-select {
+            .filter-select,
+            .filter-input {
                 width: 100%;
             }
             
-            .table-header {
+            .filter-actions {
                 flex-direction: column;
-                gap: 15px;
-                align-items: flex-start;
-            }
-            
-            .search-box {
-                width: 100%;
             }
             
             .data-table {
@@ -723,27 +861,20 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 overflow-x: auto;
             }
             
-            .modal-content {
-                width: 95%;
-                margin: 10px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .reports-content {
-                padding: 12px;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
             .date-range {
                 grid-template-columns: 1fr;
             }
+            
+            .report-option-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .preview-image {
+                max-height: 300px;
+            }
         }
 
-        /* Smooth sidebar transition */
         .reports-content, .sidebar, .navbar {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -753,789 +884,857 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
     <?php include 'Sidebar.php'; ?>
     <?php include 'NavigationBar.php'; ?>
 
-    <!-- Reports Content -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
     <div class="reports-content">
-        <?php
-        // Simulated data for complaints
-        $complaints = [
-            [
-                'id' => 1,
-                'complainant' => 'Severino Manalo',
-                'date' => 'Today, 9:45 AM',
-                'category' => 'Overcharging',
-                'status' => 'Pending',
-                'status_class' => 'pending',
-                'driver' => 'Juan Dela Cruz',
-                'driver_id' => 'DRV-082026-001',
-                'description' => 'Driver charged PHP 150 for a trip that usually costs PHP 80. Refused to use meter.',
-                'attachment' => 'receipt.jpg'
-            ],
-            [
-                'id' => 2,
-                'complainant' => 'Anastacio Rivera',
-                'date' => 'Today, 8:20 AM',
-                'category' => 'Rudeness',
-                'status' => 'Resolved',
-                'status_class' => 'resolved',
-                'driver' => 'Maria Santos',
-                'driver_id' => 'DRV-082026-002',
-                'description' => 'Driver was rude and used offensive language during the trip.',
-                'attachment' => null
-            ],
-            [
-                'id' => 3,
-                'complainant' => 'Florentino Ramos',
-                'date' => 'Sep 13, 4:10 PM',
-                'category' => 'Reckless Driving',
-                'status' => 'Resolved',
-                'status_class' => 'resolved',
-                'driver' => 'Pedro Gonzales',
-                'driver_id' => 'DRV-082026-003',
-                'description' => 'Driver was speeding and swerving between lanes without signaling.',
-                'attachment' => 'video.mp4'
-            ],
-            [
-                'id' => 4,
-                'complainant' => 'Isidro Bautista',
-                'date' => 'Sep 12, 11:30 AM',
-                'category' => 'Overcharging',
-                'status' => 'Resolved',
-                'status_class' => 'resolved',
-                'driver' => 'Ana Reyes',
-                'driver_id' => 'DRV-082026-004',
-                'description' => 'Overcharged by PHP 50 for a short distance trip.',
-                'attachment' => 'receipt.jpg'
-            ],
-            [
-                'id' => 5,
-                'complainant' => 'Rogelio Cruz',
-                'date' => 'Sep 11, 6:00 PM',
-                'category' => 'Rudeness',
-                'status' => 'Pending',
-                'status_class' => 'pending',
-                'driver' => 'Luis Torres',
-                'driver_id' => 'DRV-082026-005',
-                'description' => 'Driver refused to help with luggage and was impolite.',
-                'attachment' => null
-            ],
-            [
-                'id' => 6,
-                'complainant' => 'Eduardo Santos',
-                'date' => 'Sep 10, 2:15 PM',
-                'category' => 'Rudeness',
-                'status' => 'Pending',
-                'status_class' => 'pending',
-                'driver' => 'Sofia Lim',
-                'driver_id' => 'DRV-082026-006',
-                'description' => 'Driver was dismissive and unhelpful when asked for directions.',
-                'attachment' => null
-            ],
-            [
-                'id' => 7,
-                'complainant' => 'Maria Santos',
-                'date' => 'Sep 10, 4:19 PM',
-                'category' => 'Reckless Driving',
-                'status' => 'Pending',
-                'status_class' => 'pending',
-                'driver' => 'Juan Dela Cruz',
-                'driver_id' => 'DRV-082026-001',
-                'description' => 'Driver ran through red light and almost caused an accident.',
-                'attachment' => 'photo.jpg'
-            ],
-            [
-                'id' => 8,
-                'complainant' => 'Angela Ramirez',
-                'date' => 'Sep 9, 10:28 AM',
-                'category' => 'Reckless Driving',
-                'status' => 'Resolved',
-                'status_class' => 'resolved',
-                'driver' => 'Maria Santos',
-                'driver_id' => 'DRV-082026-002',
-                'description' => 'Driver was texting while driving and not paying attention to the road.',
-                'attachment' => null
-            ],
-            [
-                'id' => 9,
-                'complainant' => 'Kevin Dela Cruz',
-                'date' => 'Sep 8, 9:05 AM',
-                'category' => 'Overcharging',
-                'status' => 'Resolved',
-                'status_class' => 'resolved',
-                'driver' => 'Pedro Gonzales',
-                'driver_id' => 'DRV-082026-003',
-                'description' => 'Charged extra PHP 30 without explanation.',
-                'attachment' => 'receipt.jpg'
-            ]
-        ];
-
-        // Graph data - Complaints per month
-        $monthlyData = [
-            'labels' => ['Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            'data' => [12, 9, 7, 5, 3]
-        ];
-
-        // Statistics
-        $totalComplaints = count($complaints);
-        $pendingComplaints = count(array_filter($complaints, function($c) { return $c['status'] === 'Pending'; }));
-        $resolvedComplaints = count(array_filter($complaints, function($c) { return $c['status'] === 'Resolved'; }));
-
-        // Category breakdown
-        $categoryCount = [
-            'Overcharging' => count(array_filter($complaints, function($c) { return $c['category'] === 'Overcharging'; })),
-            'Rudeness' => count(array_filter($complaints, function($c) { return $c['category'] === 'Rudeness'; })),
-            'Reckless Driving' => count(array_filter($complaints, function($c) { return $c['category'] === 'Reckless Driving'; }))
-        ];
-        ?>
-        
-        <!-- Welcome Section -->
         <div class="welcome-section">
-            <h1 class="welcome-title">Reports</h1>
-            <p class="welcome-subtitle">View and manage all complaints efficiently.</p>
+            <h1 class="welcome-title">Reports & Complaints Management</h1>
+            <p class="welcome-subtitle">View, filter, and manage all complaints from commuters and drivers.</p>
         </div>
 
-        <!-- Statistics -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value"><?php echo $totalComplaints; ?></div>
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card" onclick="filterByStatus('all')">
+                <div class="stat-value" id="totalComplaints">0</div>
                 <div class="stat-label">Total Complaints</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value"><?php echo $pendingComplaints; ?></div>
-                <div class="stat-label">Pending Complaints</div>
+            <div class="stat-card" onclick="filterByStatus('pending')">
+                <div class="stat-value" id="pendingComplaints">0</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card" onclick="filterByStatus('resolved')">
+                <div class="stat-value" id="resolvedComplaints">0</div>
+                <div class="stat-label">Resolved</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value"><?php echo $resolvedComplaints; ?></div>
-                <div class="stat-label">Resolved Complaints</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value"><?php echo round(($resolvedComplaints / $totalComplaints) * 100, 1); ?>%</div>
+                <div class="stat-value" id="resolutionRate">0%</div>
                 <div class="stat-label">Resolution Rate</div>
             </div>
         </div>
 
-        <!-- Main Layout -->
         <div class="main-layout">
-            <!-- Left Column: Complaints Table -->
             <div>
-                <!-- Search and Filter -->
                 <div class="filter-section">
-                    <div class="filter-title">Search Filters</div>
                     <div class="filter-group">
                         <select class="filter-select" id="categoryFilter">
-                            <option value="">Category: All</option>
-                            <option value="Overcharging">Overcharging</option>
-                            <option value="Rudeness">Rudeness</option>
-                            <option value="Reckless Driving">Reckless Driving</option>
+                            <option value="">All Categories</option>
                         </select>
                         
                         <select class="filter-select" id="statusFilter">
-                            <option value="">Status: All</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Resolved">Resolved</option>
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="resolved">Resolved</option>
                         </select>
                         
-                        <button class="btn btn-secondary" onclick="clearFilters()">
-                            <i class="fas fa-times"></i> Clear Filters
-                        </button>
+                        <input type="text" class="filter-input" id="searchFilter" placeholder="Search by name, complainant, accused, category...">
+                        
+                        <div class="filter-actions">
+                            <button class="btn btn-secondary" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Complaints Table -->
                 <div class="table-container">
                     <div class="table-header">
-                        <div class="table-title">Complaints List</div>
-                        <div class="search-box">
-                            <i class="fas fa-search search-icon"></i>
-                            <input type="text" class="search-input" id="searchInput" placeholder="Search complaints...">
-                        </div>
+                        <div class="table-title">📋 Complaints List</div>
                     </div>
                     
-                    <table class="data-table">
+                    <table class="data-table" id="complaintsTable">
                         <thead>
                             <tr>
                                 <th>Complainant</th>
-                                <th>Date</th>
+                                <th>Against</th>
+                                <th>Time</th>
                                 <th>Category</th>
+                                <th>Ride ID</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody id="complaintsTable">
-                            <?php foreach ($complaints as $complaint): ?>
-                            <tr data-id="<?php echo $complaint['id']; ?>">
-                                <td><?php echo $complaint['complainant']; ?></td>
-                                <td><?php echo $complaint['date']; ?></td>
-                                <td><?php echo $complaint['category']; ?></td>
-                                <td>
-                                    <span class="status-badge <?php echo $complaint['status_class']; ?>">
-                                        <?php echo $complaint['status']; ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <button class="action-btn" onclick="viewComplaint(<?php echo $complaint['id']; ?>)">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
+                        <tbody id="complaintsTableBody"></tbody>
                     </table>
+                    
+                    <div id="pagination" class="pagination"></div>
+                    
+                    <div id="emptyState" class="empty-state" style="display: none;">
+                        <i class="fas fa-search"></i>
+                        <p>No complaints found matching your filters</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Right Column: Reports and Charts -->
             <div>
-                <!-- Report Generation -->
                 <div class="report-generation">
-                    <div class="report-title">Report Generation</div>
+                    <div class="report-title">📊 Generate Report</div>
                     <div class="report-options">
-                        <div class="report-option">
-                            <input type="checkbox" id="reportAll" checked>
-                            <label for="reportAll">All Complaints</label>
+                        <div class="report-option-group">
+                            <div class="report-option">
+                                <input type="radio" name="report_status" id="reportAll" value="" checked>
+                                <label for="reportAll">All Complaints</label>
+                            </div>
+                            <div class="report-option">
+                                <input type="radio" name="report_status" id="reportPending" value="pending">
+                                <label for="reportPending">Pending Only</label>
+                            </div>
+                            <div class="report-option">
+                                <input type="radio" name="report_status" id="reportResolved" value="resolved">
+                                <label for="reportResolved">Resolved Only</label>
+                            </div>
                         </div>
-                        <div class="report-option">
-                            <input type="checkbox" id="reportPending">
-                            <label for="reportPending">Pending Only</label>
-                        </div>
-                        <div class="report-option">
-                            <input type="checkbox" id="reportResolved">
-                            <label for="reportResolved">Resolved Only</label>
-                        </div>
-                        <div class="report-option">
-                            <input type="checkbox" id="reportByCategory">
-                            <label for="reportByCategory">By Category</label>
+                        
+                        <div class="report-option-group">
+                            <div class="report-option">
+                                <input type="radio" name="group_by" id="groupNone" value="none" checked>
+                                <label for="groupNone">List View</label>
+                            </div>
+                            <div class="report-option">
+                                <input type="radio" name="group_by" id="groupCategory" value="category">
+                                <label for="groupCategory">Group by Category</label>
+                            </div>
                         </div>
                         
                         <div class="date-range">
-                            <input type="date" class="date-input" id="reportDateFrom" value="<?php echo date('Y-m-d', strtotime('-30 days')); ?>">
-                            <input type="date" class="date-input" id="reportDateTo" value="<?php echo date('Y-m-d'); ?>">
+                            <input type="date" class="date-input" id="reportDateFrom">
+                            <input type="date" class="date-input" id="reportDateTo">
                         </div>
                         
                         <button class="generate-btn" onclick="generateReport()">
-                            <i class="fas fa-file-export"></i> Generate Report
+                            <i class="fas fa-file-excel"></i> Generate & Download Report
                         </button>
                     </div>
                 </div>
 
-                <!-- Chart Section -->
                 <div class="chart-section">
-                    <div class="chart-title">Complaints per Month</div>
+                    <div class="chart-title">📈 Complaints Trend</div>
                     <div class="chart-container">
                         <canvas id="complaintsChart"></canvas>
                     </div>
                 </div>
 
-                <!-- Category Breakdown -->
                 <div class="category-breakdown">
-                    <div class="chart-title">Complaints by Category</div>
-                    <div class="category-list">
-                        <?php foreach ($categoryCount as $category => $count): ?>
-                        <div class="category-item <?php echo strtolower(str_replace(' ', '', $category)); ?>">
-                            <span class="category-name"><?php echo $category; ?></span>
-                            <span class="category-count"><?php echo $count; ?></span>
-                        </div>
-                        <?php endforeach; ?>
+                    <div class="chart-title">📊 Complaints by Category</div>
+                    <div class="category-list" id="categoryBreakdown">
+                        <div style="text-align: center; padding: 20px; color: #999;">No data available</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Footer -->
         <div class="footer">
             <p>ServiceCo Complaint Management &copy; <?php echo date('Y'); ?>. All rights reserved.</p>
         </div>
     </div>
 
-    <!-- Complaint Details Modal -->
     <div class="modal" id="complaintModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Complaint Details</h3>
+                <h3>📄 Complaint Details</h3>
                 <button class="modal-close" onclick="closeModal('complaintModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="complaint-details" id="complaintDetailsContent">
-                    <!-- Dynamic content will be loaded here -->
-                </div>
+                <div class="complaint-details" id="complaintDetailsContent"></div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('complaintModal')">Close</button>
-                <button class="btn btn-primary" id="resolveBtn" onclick="resolveComplaint()">Mark as Resolved</button>
-                <button class="btn btn-danger" id="deleteBtn" onclick="deleteComplaint()">Delete Complaint</button>
+                <button class="btn btn-success" id="resolveBtn" onclick="showStatusConfirm()">Mark as Resolved</button>
+                <button class="btn btn-danger" onclick="showDeleteConfirm()">Delete</button>
             </div>
         </div>
     </div>
 
-    <!-- Success/Error Messages -->
-    <div class="success-message" id="successMessage"></div>
-    <div class="error-message" id="errorMessage"></div>
+    <div class="modal" id="statusConfirmModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header" id="confirmModalHeader" style="background-color: #f59e0b;">
+                <h3 id="confirmModalTitle">Confirm Status Change</h3>
+                <button class="modal-close" onclick="closeModal('statusConfirmModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <div class="confirmation-icon" id="confirmModalIcon">
+                    <i class="fas fa-undo" style="color: #f59e0b;"></i>
+                </div>
+                <p id="statusConfirmMessage" style="margin-bottom: 20px;">Are you sure you want to change the status?</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-secondary" onclick="closeModal('statusConfirmModal')">Cancel</button>
+                    <button class="btn" id="confirmActionBtn" onclick="confirmStatusChange()" style="background-color: #f59e0b; color: white;">Yes, Proceed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="previewModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 id="previewTitle">Document Preview</h3>
+                <button class="modal-close" onclick="closeModal('previewModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="previewContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('previewModal')">Close</button>
+                <a href="#" id="downloadLink" target="_blank" class="btn btn-primary" style="decoration">
+                    <i class="fas fa-download"></i> Download
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="deleteConfirmModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header" style="background-color: #ef4444;">
+                <h3>Confirm Delete</h3>
+                <button class="modal-close" onclick="closeModal('deleteConfirmModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #f59e0b; margin-bottom: 15px;"></i>
+                <p style="margin-bottom: 20px;">Are you sure you want to delete this complaint? This action cannot be undone.</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-secondary" onclick="closeModal('deleteConfirmModal')">Cancel</button>
+                    <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // Store current sidebar mode
-        let currentSidebarMode = '<?php echo $sidebarMode; ?>';
-        
-        // Current complaint for modal actions
-        let currentComplaintId = null;
-        let currentComplaintStatus = null;
+        window.isDataLoaded = false;
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        let filteredComplaints = [];
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Listen for sidebar events from Sidebar.php
-            document.addEventListener('sidebarModeChanged', function(e) {
-                console.log('Reports: Sidebar mode changed to:', e.detail.mode);
-                currentSidebarMode = e.detail.mode;
-                adjustReportsPosition();
+            setTimeout(() => {
+                if (!window.isDataLoaded) {
+                    document.getElementById('loadingOverlay').classList.add('fade-out');
+                    setTimeout(() => window.updateAllPositions(), 100);
+                }
+            }, 5000);
+            
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('modal')) {
+                    closeModal(e.target.id);
+                }
             });
             
-            // Listen for sidebar auto-hide hover events
-            document.addEventListener('sidebarAutoHide', function(e) {
-                console.log('Reports: Sidebar auto-hide hover:', e.detail.expanded);
+            const today = new Date();
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(today.getDate() - 7);
+            
+            document.getElementById('reportDateFrom').value = sevenDaysAgo.toISOString().split('T')[0];
+            document.getElementById('reportDateTo').value = today.toISOString().split('T')[0];
+        });
+
+        const database = firebase.database();
+        let allComplaints = [];
+        let currentComplaint = null;
+        let complaintsChart = null;
+        let pendingAction = null;
+
+        function formatFileName(url) {
+            const filename = url.split('/').pop().split('?')[0];
+            const match = filename.match(/(COM-\d{8}-\d{3}|DRV-\d{8}-\d{3})/);
+            if (match) {
+                const id = match[1];
+                const ext = filename.split('.').pop();
+                return `${id}_Complaint_Evidence.${ext}`;
+            }
+            return filename;
+        }
+
+        function loadComplaints() {
+            database.ref('Complaints').on('value', (snapshot) => {
+                const data = snapshot.val();
+                allComplaints = [];
                 
-                // Force immediate position adjustment on hover
-                setTimeout(() => {
-                    adjustReportsPosition();
-                }, 10);
-            });
-            
-            // Listen for sidebar toggle events
-            document.addEventListener('sidebarToggled', function(e) {
-                console.log('Reports: Sidebar manually toggled:', e.detail.collapsed);
+                if (data) {
+                    Object.entries(data).forEach(([key, complaint]) => {
+                        if (!complaint) return;
+                        
+                        const processed = processComplaint(key, complaint);
+                        allComplaints.push(processed);
+                    });
+                    
+                    allComplaints.sort((a, b) => new Date(b.date_raw) - new Date(a.date_raw));
+                }
                 
-                // Force immediate position adjustment
-                setTimeout(() => {
-                    adjustReportsPosition();
-                }, 10);
+                updateStats();
+                applyFilters();
+                updateCategoryBreakdown();
+                updateChart();
+                updateCategoryFilter();
+                
+                if (!window.isDataLoaded) {
+                    window.isDataLoaded = true;
+                    setTimeout(() => {
+                        document.getElementById('loadingOverlay').classList.add('fade-out');
+                        setTimeout(() => window.updateAllPositions(), 100);
+                    }, 500);
+                }
             });
+        }
+
+        loadComplaints();
+
+        function processComplaint(key, complaint) {
+            const dateSubmitted = complaint.DateSubmitted ? new Date(complaint.DateSubmitted) : new Date();
+            const now = new Date();
+            const diffMs = now - dateSubmitted;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
             
-            // Listen for global sidebar position updates
-            if (typeof window.updateAllPositions === 'function') {
-                // Hook into the global update function
-                const originalUpdateAllPositions = window.updateAllPositions;
-                window.updateAllPositions = function() {
-                    originalUpdateAllPositions();
-                    adjustReportsPosition();
-                };
+            let displayDate;
+            if (diffDays === 0) {
+                if (diffHours === 0) {
+                    if (diffMins === 0) displayDate = 'Just now';
+                    else displayDate = diffMins + ' minute' + (diffMins > 1 ? 's' : '') + ' ago';
+                } else {
+                    displayDate = diffHours + ' hour' + (diffHours > 1 ? 's' : '') + ' ago';
+                }
+            } else if (diffDays === 1) {
+                displayDate = 'Yesterday at ' + dateSubmitted.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            } else if (diffDays <= 7) {
+                displayDate = diffDays + ' days ago';
+            } else {
+                displayDate = dateSubmitted.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + 
+                             ' at ' + dateSubmitted.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
             }
             
-            // Initial position adjustment
-            setTimeout(() => {
-                adjustReportsPosition();
-            }, 100);
+            const complainantType = complaint.ComplainantType || 'unknown';
+            const accusedType = complaint.AccusedType || 'unknown';
+            const status = complaint.Status || 'Pending';
             
-            // Set up periodic check for sidebar changes
-            setInterval(() => {
-                const sidebar = document.getElementById('sidebar');
-                if (sidebar) {
-                    const currentClasses = sidebar.className;
-                    
-                    // Check if classes have changed
-                    if (window.lastSidebarClasses !== currentClasses) {
-                        window.lastSidebarClasses = currentClasses;
-                        adjustReportsPosition();
-                    }
+            const attachments = [];
+            if (complaint.AttachmentUrls && Array.isArray(complaint.AttachmentUrls)) {
+                complaint.AttachmentUrls.forEach(url => {
+                    attachments.push({
+                        url: url,
+                        display_name: formatFileName(url)
+                    });
+                });
+            }
+            
+            return {
+                id: key,
+                firebase_key: key,
+                complainant: complaint.ComplainantName || complaint.ComplainantPhone || 'Unknown',
+                complainant_type: complainantType,
+                complainant_phone: complaint.ComplainantPhone || '',
+                complainant_id: complaint.ComplainantId || '',
+                accused: complaint.AccusedName || 'Unknown',
+                accused_type: accusedType,
+                accused_phone: complaint.AccusedPhone || '',
+                accused_id: complaint.AccusedId || '',
+                date: displayDate,
+                date_raw: dateSubmitted.toISOString(),
+                category: complaint.Category || 'Other',
+                status: status,
+                status_class: status.toLowerCase(),
+                ride_id: complaint.RideDisplayId || (complaint.RideId ? 'Ride-' + complaint.RideId.slice(-8) : 'N/A'),
+                ride_firebase_key: complaint.RideId || '',
+                description: complaint.Description || '',
+                plate_number: complaint.VehicleNumber || '',
+                attachments: attachments
+            };
+        }
+
+        function updateStats() {
+            const total = allComplaints.length;
+            const pending = allComplaints.filter(c => c.status === 'Pending').length;
+            const resolved = allComplaints.filter(c => c.status === 'Resolved').length;
+            const rate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+            
+            document.getElementById('totalComplaints').textContent = total;
+            document.getElementById('pendingComplaints').textContent = pending;
+            document.getElementById('resolvedComplaints').textContent = resolved;
+            document.getElementById('resolutionRate').textContent = rate + '%';
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('complaintsTableBody');
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageItems = filteredComplaints.slice(start, end);
+            
+            if (filteredComplaints.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 50px;">No complaints found</td></tr>';
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+            
+            let html = '';
+            pageItems.forEach(c => {
+                html += `
+                    <tr data-id="${c.id}" 
+                        data-category="${c.category.toLowerCase()}"
+                        data-status="${c.status.toLowerCase()}"
+                        data-search="${c.complainant.toLowerCase()} ${c.accused.toLowerCase()} ${c.category.toLowerCase()} ${c.status.toLowerCase()} ${c.ride_id.toLowerCase()}">
+                        <td>
+                            ${escapeHtml(c.complainant)}
+                            <span class="type-badge ${c.complainant_type}" style="margin-left: 5px; padding: 2px 6px; font-size: 10px;">
+                                ${c.complainant_type === 'commuter' ? 'C' : 'D'}
+                            </span>
+                        </td>
+                        <td>
+                            ${escapeHtml(c.accused)}
+                            <span class="type-badge ${c.accused_type}" style="margin-left: 5px; padding: 2px 6px; font-size: 10px;">
+                                ${c.accused_type === 'commuter' ? 'C' : 'D'}
+                            </span>
+                        </td>
+                        <td>${c.date}</td>
+                        <td>${escapeHtml(c.category)}</td>
+                        <td>${escapeHtml(c.ride_id)}</td>
+                        <td>
+                            <span class="status-badge ${c.status_class}">
+                                ${c.status}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="action-btn small" onclick='showComplaintDetails(${JSON.stringify(c).replace(/'/g, "\\'")})'>
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredComplaints.length / itemsPerPage);
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            pagination.style.display = 'flex';
+            
+            let html = '';
+            html += `<button class="pagination-btn" onclick="changePage(1)" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+            
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    html += `<span class="pagination-btn" style="border: none; background: none;">...</span>`;
                 }
-            }, 100);
+            }
             
-            // Initialize Chart
+            html += `<button class="pagination-btn" onclick="changePage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+            
+            pagination.innerHTML = html;
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            renderTable();
+        }
+
+        function updateCategoryBreakdown() {
+            const categories = {};
+            allComplaints.forEach(c => {
+                categories[c.category] = (categories[c.category] || 0) + 1;
+            });
+            
+            const sorted = Object.entries(categories).sort((a, b) => b[1] - a[1]);
+            
+            const container = document.getElementById('categoryBreakdown');
+            if (sorted.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">No data available</div>';
+                return;
+            }
+            
+            let html = '';
+            sorted.forEach(([category, count]) => {
+                html += `
+                    <div class="category-item" onclick="filterByCategory('${category}')">
+                        <span class="category-name">${escapeHtml(category)}</span>
+                        <span class="category-count">${count}</span>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function updateCategoryFilter() {
+            const categories = [...new Set(allComplaints.map(c => c.category))].sort();
+            const filter = document.getElementById('categoryFilter');
+            let options = '<option value="">All Categories</option>';
+            categories.forEach(cat => {
+                options += `<option value="${cat.toLowerCase()}">${escapeHtml(cat)}</option>`;
+            });
+            filter.innerHTML = options;
+        }
+
+        function updateChart() {
+            const months = [];
+            const counts = [];
+            
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date();
+                d.setMonth(d.getMonth() - i);
+                const monthName = d.toLocaleDateString('en-US', { month: 'short' });
+                months.push(monthName);
+                
+                const count = allComplaints.filter(c => {
+                    const complaintMonth = new Date(c.date_raw).toLocaleDateString('en-US', { month: 'short' });
+                    return complaintMonth === monthName;
+                }).length;
+                
+                counts.push(count);
+            }
+            
             const ctx = document.getElementById('complaintsChart').getContext('2d');
             
-            const complaintsChart = new Chart(ctx, {
-                type: 'bar',
+            if (complaintsChart) complaintsChart.destroy();
+            
+            complaintsChart = new Chart(ctx, {
+                type: 'line',
                 data: {
-                    labels: <?php echo json_encode($monthlyData['labels']); ?>,
+                    labels: months,
                     datasets: [{
                         label: 'Complaints',
-                        data: <?php echo json_encode($monthlyData['data']); ?>,
-                        backgroundColor: [
-                            'rgba(59, 130, 246, 0.7)',
-                            'rgba(16, 185, 129, 0.7)',
-                            'rgba(245, 158, 11, 0.7)',
-                            'rgba(239, 68, 68, 0.7)',
-                            'rgba(139, 92, 246, 0.7)'
-                        ],
-                        borderColor: [
-                            'rgb(59, 130, 246)',
-                            'rgb(16, 185, 129)',
-                            'rgb(245, 158, 11)',
-                            'rgb(239, 68, 68)',
-                            'rgb(139, 92, 246)'
-                        ],
-                        borderWidth: 1,
-                        borderRadius: 4
+                        data: counts,
+                        backgroundColor: 'rgba(52, 116, 51, 0.1)',
+                        borderColor: '#347433',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#347433',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        tension: 0.3,
+                        fill: true
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                            titleFont: {
-                                size: 12
-                            },
-                            bodyFont: {
-                                size: 12
-                            },
-                            padding: 10,
-                            cornerRadius: 4
-                        }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)',
-                                drawBorder: false
-                            },
-                            ticks: {
-                                font: {
-                                    size: 11
-                                },
-                                padding: 8,
-                                stepSize: 5
-                            },
-                            title: {
-                                display: true,
-                                text: 'Number of Complaints',
-                                font: {
-                                    size: 12,
-                                    weight: 'bold'
-                                },
-                                color: '#666'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                font: {
-                                    size: 11
-                                },
-                                padding: 8
-                            },
-                            title: {
-                                display: true,
-                                text: 'Months',
-                                font: {
-                                    size: 12,
-                                    weight: 'bold'
-                                },
-                                color: '#666'
-                            }
+                            ticks: { stepSize: 1, callback: v => Number.isInteger(v) ? v : '' }
                         }
                     }
                 }
             });
-            
-            // Filter functionality
-            setupFilters();
-        });
+        }
 
-        // FUNCTION: Adjust reports position based on sidebar state
-        function adjustReportsPosition() {
-            const sidebar = document.getElementById('sidebar');
-            const content = document.querySelector('.reports-content');
+        function applyFilters() {
+            const categoryFilter = document.getElementById('categoryFilter').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
             
-            if (!sidebar || !content) return;
-            
-            const isAutoHide = sidebar.classList.contains('auto-hide');
-            const isCollapsed = sidebar.classList.contains('collapsed');
-            const isHovered = sidebar.matches(':hover') && isAutoHide;
-            
-            // Calculate sidebar width
-            let sidebarWidth;
-            
-            if (isAutoHide) {
-                if (isHovered) {
-                    sidebarWidth = 240; // Expanded on hover
-                } else {
-                    sidebarWidth = 70; // Collapsed normally
-                }
-            } else {
-                if (isCollapsed) {
-                    sidebarWidth = 70;
-                } else {
-                    sidebarWidth = 240;
-                }
-            }
-            
-            console.log('Reports adjusting position:', {
-                isAutoHide,
-                isCollapsed,
-                isHovered,
-                sidebarWidth
+            filteredComplaints = allComplaints.filter(c => {
+                const matchesCategory = !categoryFilter || c.category.toLowerCase().includes(categoryFilter);
+                const matchesStatus = !statusFilter || c.status.toLowerCase() === statusFilter;
+                const matchesSearch = !searchFilter || 
+                    c.complainant.toLowerCase().includes(searchFilter) ||
+                    c.accused.toLowerCase().includes(searchFilter) ||
+                    c.category.toLowerCase().includes(searchFilter) ||
+                    c.ride_id.toLowerCase().includes(searchFilter);
+                
+                return matchesCategory && matchesStatus && matchesSearch;
             });
             
-            // Update reports content position immediately
-            content.style.marginLeft = sidebarWidth + 'px';
-            content.style.width = `calc(100% - ${sidebarWidth}px)`;
-            content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            
-            // Also update navbar if exists
-            const navbar = document.getElementById('navbar');
-            if (navbar) {
-                navbar.style.left = sidebarWidth + 'px';
-            }
-            
-            // Force a reflow to ensure CSS updates immediately
-            void content.offsetWidth;
+            currentPage = 1;
+            renderTable();
         }
-        
-        // Make the function available globally
-        window.adjustReportsPosition = adjustReportsPosition;
 
-        // Setup filter functionality
         function setupFilters() {
             const categoryFilter = document.getElementById('categoryFilter');
             const statusFilter = document.getElementById('statusFilter');
-            const searchInput = document.getElementById('searchInput');
-            const tableRows = document.querySelectorAll('#complaintsTable tr');
-            
-            function applyFilters() {
-                const category = categoryFilter.value.toLowerCase();
-                const status = statusFilter.value.toLowerCase();
-                const search = searchInput.value.toLowerCase();
-                
-                tableRows.forEach(row => {
-                    const categoryCell = row.cells[2].textContent.toLowerCase();
-                    const statusCell = row.cells[3].textContent.toLowerCase();
-                    const complainantCell = row.cells[0].textContent.toLowerCase();
-                    const dateCell = row.cells[1].textContent.toLowerCase();
-                    
-                    const matchesCategory = !category || categoryCell.includes(category);
-                    const matchesStatus = !status || statusCell.includes(status);
-                    const matchesSearch = !search || 
-                        complainantCell.includes(search) || 
-                        dateCell.includes(search) ||
-                        categoryCell.includes(search);
-                    
-                    if (matchesCategory && matchesStatus && matchesSearch) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
+            const searchFilter = document.getElementById('searchFilter');
             
             categoryFilter.addEventListener('change', applyFilters);
             statusFilter.addEventListener('change', applyFilters);
-            searchInput.addEventListener('input', applyFilters);
+            searchFilter.addEventListener('input', applyFilters);
         }
 
-        // Clear all filters
+        setupFilters();
+
+        function filterByCategory(category) {
+            document.getElementById('categoryFilter').value = category.toLowerCase();
+            applyFilters();
+        }
+
+        function filterByStatus(status) {
+            if (status === 'all') {
+                document.getElementById('statusFilter').value = '';
+            } else {
+                document.getElementById('statusFilter').value = status;
+            }
+            applyFilters();
+        }
+
         function clearFilters() {
             document.getElementById('categoryFilter').value = '';
             document.getElementById('statusFilter').value = '';
-            document.getElementById('searchInput').value = '';
-            
-            const tableRows = document.querySelectorAll('#complaintsTable tr');
-            tableRows.forEach(row => {
-                row.style.display = '';
-            });
-            
-            showMessage('Filters cleared', 'success');
+            document.getElementById('searchFilter').value = '';
+            applyFilters();
         }
 
-        // View complaint details
-        function viewComplaint(complaintId) {
-            const complaints = <?php echo json_encode($complaints); ?>;
-            const complaint = complaints.find(c => c.id == complaintId);
+        function showComplaintDetails(complaint) {
+            currentComplaint = complaint;
             
-            if (complaint) {
-                currentComplaintId = complaintId;
-                currentComplaintStatus = complaint.status;
-                
-                const content = `
-                    <div class="detail-row">
-                        <div class="detail-group">
-                            <div class="detail-label">Complainant</div>
-                            <div class="detail-value">${complaint.complainant}</div>
-                        </div>
-                        <div class="detail-group">
-                            <div class="detail-label">Date Reported</div>
-                            <div class="detail-value">${complaint.date}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-group">
-                            <div class="detail-label">Category</div>
-                            <div class="detail-value">${complaint.category}</div>
-                        </div>
-                        <div class="detail-group">
-                            <div class="detail-label">Status</div>
-                            <div class="detail-value">
-                                <span class="status-badge ${complaint.status_class}">${complaint.status}</span>
+            let attachmentsHtml = '';
+            if (complaint.attachments && complaint.attachments.length > 0) {
+                attachmentsHtml = '<div class="attachment-list">';
+                complaint.attachments.forEach(att => {
+                    const isImage = att.url.match(/\.(jpg|jpeg|png|gif|webp)/i);
+                    attachmentsHtml += `
+                        <div class="attachment-item">
+                            <div class="attachment-icon">
+                                <i class="fas ${isImage ? 'fa-image' : 'fa-file'}"></i>
                             </div>
-                        </div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-group">
-                            <div class="detail-label">Driver</div>
-                            <div class="detail-value">${complaint.driver}</div>
-                        </div>
-                        <div class="detail-group">
-                            <div class="detail-label">Driver ID</div>
-                            <div class="detail-value">${complaint.driver_id}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="description-box">
-                        <div class="detail-label">Description</div>
-                        <div class="detail-value">${complaint.description}</div>
-                    </div>
-                    
-                    <div class="attachment-box">
-                        <div class="detail-label">Attachment</div>
-                        ${complaint.attachment ? `
-                            <div class="attachment-preview">
-                                <div class="attachment-icon">
-                                    <i class="fas fa-file-${getFileIcon(complaint.attachment)}"></i>
-                                </div>
-                                <div style="font-size: 13px; color: #666; margin-bottom: 10px;">${complaint.attachment}</div>
-                                <button class="btn btn-secondary" onclick="downloadAttachment('${complaint.attachment}')">
-                                    <i class="fas fa-download"></i> Download Attachment
-                                </button>
+                            <div class="attachment-info">
+                                <div class="attachment-name">${escapeHtml(att.display_name)}</div>
+                                <div class="attachment-meta">${isImage ? 'Image' : 'Document'}</div>
                             </div>
-                        ` : `
-                            <div class="detail-value" style="text-align: center; color: #9ca3af;">
-                                <i class="fas fa-times" style="margin-right: 8px;"></i> No attachment
-                            </div>
-                        `}
-                    </div>
-                `;
-                
-                document.getElementById('complaintDetailsContent').innerHTML = content;
-                
-                // Update button text based on status
-                const resolveBtn = document.getElementById('resolveBtn');
-                const deleteBtn = document.getElementById('deleteBtn');
-                
-                if (complaint.status === 'Resolved') {
-                    resolveBtn.innerHTML = '<i class="fas fa-undo"></i> Reopen Complaint';
-                    resolveBtn.onclick = function() { reopenComplaint(); };
-                } else {
-                    resolveBtn.innerHTML = '<i class="fas fa-check"></i> Mark as Resolved';
-                    resolveBtn.onclick = function() { resolveComplaint(); };
-                }
-                
-                deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete Complaint';
-                deleteBtn.onclick = function() { deleteComplaint(); };
-                
-                showModal('complaintModal');
-            }
-        }
-
-        // Get file icon based on extension
-        function getFileIcon(filename) {
-            const extension = filename.split('.').pop().toLowerCase();
-            if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
-                return 'image';
-            } else if (['mp4', 'avi', 'mov'].includes(extension)) {
-                return 'video';
-            } else if (['pdf'].includes(extension)) {
-                return 'pdf';
+                            <button class="preview-btn" onclick='previewDocument("${escapeHtml(att.display_name)}", "${att.url}")'>
+                                <i class="fas fa-eye"></i> Preview
+                            </button>
+                        </div>
+                    `;
+                });
+                attachmentsHtml += '</div>';
             } else {
-                return 'file';
+                attachmentsHtml = '<div class="detail-value" style="text-align: center; color: #9ca3af;"><i class="fas fa-times" style="margin-right: 8px;"></i> No attachments</div>';
             }
+            
+            document.getElementById('complaintDetailsContent').innerHTML = `
+                <div class="detail-row">
+                    <div class="detail-group">
+                        <div class="detail-label">Complainant</div>
+                        <div class="detail-value">
+                            ${escapeHtml(complaint.complainant)}
+                            <span class="type-badge ${complaint.complainant_type}" style="margin-left: 5px;">
+                                ${complaint.complainant_type === 'commuter' ? 'Commuter' : 'Driver'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="detail-group">
+                        <div class="detail-label">Accused</div>
+                        <div class="detail-value">
+                            ${escapeHtml(complaint.accused)}
+                            <span class="type-badge ${complaint.accused_type}" style="margin-left: 5px;">
+                                ${complaint.accused_type === 'commuter' ? 'Commuter' : 'Driver'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-group">
+                        <div class="detail-label">Date & Time</div>
+                        <div class="detail-value">${complaint.date}</div>
+                    </div>
+                    <div class="detail-group">
+                        <div class="detail-label">Ride ID</div>
+                        <div class="detail-value">${escapeHtml(complaint.ride_id)}</div>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-group">
+                        <div class="detail-label">Category</div>
+                        <div class="detail-value">${escapeHtml(complaint.category)}</div>
+                    </div>
+                    <div class="detail-group">
+                        <div class="detail-label">Plate Number</div>
+                        <div class="detail-value">${escapeHtml(complaint.plate_number) || 'N/A'}</div>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-group">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value">
+                            <span class="status-badge ${complaint.status_class}">${complaint.status}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="description-box">
+                    <div class="detail-label">Description</div>
+                    <div class="detail-value">${escapeHtml(complaint.description) || 'No description provided'}</div>
+                </div>
+                <div class="attachment-box">
+                    <div class="detail-label">Attachments (${complaint.attachments.length})</div>
+                    ${attachmentsHtml}
+                </div>
+            `;
+            
+            const resolveBtn = document.getElementById('resolveBtn');
+            if (complaint.status === 'Resolved') {
+                resolveBtn.innerHTML = '<i class="fas fa-undo"></i> Reopen';
+                resolveBtn.className = 'btn btn-warning';
+            } else {
+                resolveBtn.innerHTML = '<i class="fas fa-check"></i> Mark as Resolved';
+                resolveBtn.className = 'btn btn-success';
+            }
+            
+            showModal('complaintModal');
         }
 
-        // Download attachment
-        function downloadAttachment(filename) {
-            showMessage(`Downloading: ${filename}`, 'success');
+        function previewDocument(docName, docUrl) {
+            document.getElementById('previewTitle').textContent = 'Preview: ' + docName;
+            document.getElementById('previewContent').innerHTML = 
+                '<img src="' + docUrl + '" alt="' + docName + '" class="preview-image" ' +
+                'onerror="this.onerror=null; this.src=\'Images/profile_icon.png\';">' +
+                '<div style="text-align: center; margin-top: 15px;">' +
+                '<p><strong>' + escapeHtml(docName) + '</strong></p>' +
+                '<p style="color: #666; font-size: 13px;">Click Download to view full size</p></div>';
+            document.getElementById('downloadLink').href = docUrl;
+            showModal('previewModal');
         }
 
-        // Resolve complaint
-        function resolveComplaint() {
-            if (!currentComplaintId) return;
+        function showStatusConfirm() {
+            if (!currentComplaint) return;
             
-            showMessage('Complaint marked as resolved!', 'success');
-            closeModal('complaintModal');
+            const isResolved = currentComplaint.status === 'Resolved';
+            const message = isResolved 
+                ? 'Are you sure you want to reopen this complaint?' 
+                : 'Are you sure you want to mark this complaint as resolved?';
+            const title = isResolved ? 'Reopen Complaint' : 'Resolve Complaint';
             
-            // Update table row
-            updateComplaintStatus(currentComplaintId, 'resolved');
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('statusConfirmMessage').textContent = message;
+            
+            const modalHeader = document.getElementById('confirmModalHeader');
+            const confirmIcon = document.getElementById('confirmModalIcon');
+            const confirmBtn = document.getElementById('confirmActionBtn');
+            
+            if (isResolved) {
+                modalHeader.style.backgroundColor = '#f59e0b';
+                confirmIcon.innerHTML = '<i class="fas fa-undo" style="color: #f59e0b;"></i>';
+                confirmBtn.style.backgroundColor = '#f59e0b';
+            } else {
+                modalHeader.style.backgroundColor = '#347433';
+                confirmIcon.innerHTML = '<i class="fas fa-check-circle" style="color: #347433;"></i>';
+                confirmBtn.style.backgroundColor = '#347433';
+            }
+            
+            pendingAction = 'status';
+            showModal('statusConfirmModal');
         }
 
-        // Reopen complaint
-        function reopenComplaint() {
-            if (!currentComplaintId) return;
+        function confirmStatusChange() {
+            if (!currentComplaint || pendingAction !== 'status') return;
             
-            showMessage('Complaint reopened!', 'success');
-            closeModal('complaintModal');
+            const newStatus = currentComplaint.status === 'Resolved' ? 'Pending' : 'Resolved';
             
-            // Update table row
-            updateComplaintStatus(currentComplaintId, 'pending');
-        }
-
-        // Delete complaint
-        function deleteComplaint() {
-            if (!currentComplaintId) return;
-            
-            if (confirm('Are you sure you want to delete this complaint?')) {
-                showMessage('Complaint deleted!', 'success');
+            database.ref(`Complaints/${currentComplaint.id}`).update({
+                Status: newStatus,
+                DateReviewed: new Date().toISOString()
+            }).then(() => {
+                closeModal('statusConfirmModal');
                 closeModal('complaintModal');
-                
-                // Remove from table
-                const row = document.querySelector(`tr[data-id="${currentComplaintId}"]`);
-                if (row) {
-                    row.remove();
-                }
-                
-                // Update statistics
-                updateStatistics();
-            }
+                pendingAction = null;
+            });
         }
 
-        // Update complaint status in table
-        function updateComplaintStatus(complaintId, status) {
-            const row = document.querySelector(`tr[data-id="${complaintId}"]`);
-            if (row) {
-                const statusCell = row.cells[3];
-                if (status === 'resolved') {
-                    statusCell.innerHTML = '<span class="status-badge resolved">Resolved</span>';
-                } else {
-                    statusCell.innerHTML = '<span class="status-badge pending">Pending</span>';
-                }
-            }
+        function showDeleteConfirm() {
+            closeModal('complaintModal');
+            showModal('deleteConfirmModal');
+        }
+
+        function confirmDelete() {
+            if (!currentComplaint) return;
             
-            // Update statistics
-            updateStatistics();
+            database.ref(`Complaints/${currentComplaint.id}`).remove().then(() => {
+                closeModal('deleteConfirmModal');
+            });
         }
 
-        // Update statistics display
-        function updateStatistics() {
-            // In real app, you would recalculate statistics here
-            // For demo, we'll just show a message
-            showMessage('Statistics updated', 'success');
-        }
-
-        // Generate report
         function generateReport() {
-            const includeAll = document.getElementById('reportAll').checked;
-            const includePending = document.getElementById('reportPending').checked;
-            const includeResolved = document.getElementById('reportResolved').checked;
-            const includeByCategory = document.getElementById('reportByCategory').checked;
-            const dateFrom = document.getElementById('reportDateFrom').value;
-            const dateTo = document.getElementById('reportDateTo').value;
+            const status = document.querySelector('input[name="report_status"]:checked').value;
+            const groupBy = document.querySelector('input[name="group_by"]:checked').value;
+            let dateFrom = document.getElementById('reportDateFrom').value;
+            let dateTo = document.getElementById('reportDateTo').value;
             
-            // Validate date range
-            if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
-                showMessage('End date must be after start date', 'error');
-                return;
+            let filtered = [...allComplaints];
+            
+            if (status) {
+                filtered = filtered.filter(c => c.status.toLowerCase() === status);
             }
             
-            // Simulate report generation
-            showMessage('Report generated successfully! Download will start shortly...', 'success');
+            if (dateFrom && dateTo) {
+                const from = new Date(dateFrom);
+                const to = new Date(dateTo);
+                to.setHours(23, 59, 59);
+                
+                filtered = filtered.filter(c => {
+                    const d = new Date(c.date_raw);
+                    return d >= from && d <= to;
+                });
+            }
             
-            // In real app, you would make an AJAX call here
-            // and generate/download the report
+            const headers = ['ID', 'Complainant', 'Type', 'Accused', 'Accused Type', 'Category', 'Status', 'Date', 'Ride ID', 'Plate Number', 'Description'];
+            const rows = [];
+            
+            if (groupBy === 'category') {
+                const grouped = {};
+                filtered.forEach(c => {
+                    if (!grouped[c.category]) grouped[c.category] = [];
+                    grouped[c.category].push(c);
+                });
+                
+                Object.entries(grouped).forEach(([category, items]) => {
+                    rows.push([`=== CATEGORY: ${category} ===`]);
+                    items.forEach(c => {
+                        rows.push([
+                            c.id,
+                            c.complainant,
+                            c.complainant_type,
+                            c.accused,
+                            c.accused_type,
+                            c.category,
+                            c.status,
+                            new Date(c.date_raw).toLocaleString(),
+                            c.ride_id,
+                            c.plate_number || 'N/A',
+                            c.description.replace(/,/g, ';')
+                        ]);
+                    });
+                    rows.push([]);
+                });
+            } else {
+                filtered.forEach(c => {
+                    rows.push([
+                        c.id,
+                        c.complainant,
+                        c.complainant_type,
+                        c.accused,
+                        c.accused_type,
+                        c.category,
+                        c.status,
+                        new Date(c.date_raw).toLocaleString(),
+                        c.ride_id,
+                        c.plate_number || 'N/A',
+                        c.description.replace(/,/g, ';')
+                    ]);
+                });
+            }
+            
+            let csv = headers.join(',') + '\n';
+            csv += rows.map(r => r.map(cell => `"${cell}"`).join(',')).join('\n');
+            
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.setAttribute('download', `complaint_report_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
-        // Modal functions
         function showModal(modalId) {
             document.getElementById(modalId).classList.add('active');
         }
@@ -1544,26 +1743,14 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             document.getElementById(modalId).classList.remove('active');
         }
 
-        // Close modal when clicking outside
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('modal')) {
-                e.target.classList.remove('active');
-            }
-        });
-
-        // Show success/error message
-        function showMessage(message, type) {
-            const messageDiv = type === 'success' ? document.getElementById('successMessage') : document.getElementById('errorMessage');
-            const otherDiv = type === 'success' ? document.getElementById('errorMessage') : document.getElementById('successMessage');
-            
-            otherDiv.style.display = 'none';
-            messageDiv.textContent = message;
-            messageDiv.style.display = 'block';
-            
-            // Auto hide after 3 seconds
-            setTimeout(() => {
-                messageDiv.style.display = 'none';
-            }, 3000);
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
     </script>
 </body>

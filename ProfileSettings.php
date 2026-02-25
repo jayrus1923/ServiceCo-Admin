@@ -1,28 +1,30 @@
 <?php
-// ProfileSettings.php - WITH REAL-TIME AUTO-HIDE SUPPORT
 session_start();
 
-// Handle sidebar mode saving (if posted from this page)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sidebar_mode'])) {
-    $_SESSION['sidebar_mode'] = $_POST['sidebar_mode'];
-    echo json_encode(['success' => true, 'message' => 'Sidebar mode saved']);
+$sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'manual';
+
+$isLoggedIn = false;
+$userUid = '';
+
+if (isset($_SESSION['user_uid']) && !empty($_SESSION['user_uid'])) {
+    $isLoggedIn = true;
+    $userUid = $_SESSION['user_uid'];
+} elseif (isset($_COOKIE['user_uid']) && !empty($_COOKIE['user_uid'])) {
+    $isLoggedIn = true;
+    $userUid = $_COOKIE['user_uid'];
+    $_SESSION['user_uid'] = $userUid;
+    $_SESSION['user_email'] = isset($_COOKIE['user_email']) ? urldecode($_COOKIE['user_email']) : '';
+}
+
+if (!$isLoggedIn) {
+    header('Location: Login.php');
     exit;
 }
 
-// Get current sidebar mode
-$sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'manual';
+$userEmail = isset($_SESSION['user_email']) ? $_SESSION['user_email'] : (isset($_COOKIE['user_email']) ? urldecode($_COOKIE['user_email']) : '');
 
-// Simulated admin data
-$adminData = [
-    'first_name' => 'Admin',
-    'last_name' => 'User',
-    'email' => 'admin@tricyclebooking.com',
-    'username' => 'admin',
-    'phone' => '+63 912-345-6789',
-    'position' => 'System Administrator',
-    'last_login' => 'Today, 9:30 AM',
-    'profile_pic' => 'Images/profile_icon.png' // Changed to image file in Images folder
-];
+include 'Sidebar.php';
+include 'NavigationBar.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -45,7 +47,6 @@ $adminData = [
             overflow-x: hidden;
         }
 
-        /* Profile Content - WITH AUTO-HIDE SUPPORT */
         .profile-content {
             margin-top: 70px;
             padding: 25px;
@@ -55,27 +56,17 @@ $adminData = [
             min-height: calc(100vh - 70px);
         }
 
-        /* Manual mode - collapsed state */
-        .sidebar.collapsed ~ .profile-content {
-            margin-left: 70px;
-            width: calc(100% - 70px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* AUTO-HIDE MODE - NORMAL STATE (collapsed) */
+        .sidebar.collapsed ~ .profile-content,
         .sidebar.auto-hide ~ .profile-content {
             margin-left: 70px !important;
             width: calc(100% - 70px) !important;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* AUTO-HIDE MODE - HOVER STATE (expanded) */
         .sidebar.auto-hide:hover ~ .profile-content {
             margin-left: 240px !important;
             width: calc(100% - 240px) !important;
         }
 
-        /* Page Header */
         .page-header {
             background-color: white;
             padding: 20px;
@@ -84,7 +75,7 @@ $adminData = [
             margin-bottom: 25px;
         }
 
-        .page-title {
+        .page-title-large {
             font-size: 22px;
             font-weight: 600;
             color: #333;
@@ -96,7 +87,6 @@ $adminData = [
             font-size: 14px;
         }
 
-        /* Main Layout */
         .profile-layout {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -109,7 +99,6 @@ $adminData = [
             }
         }
 
-        /* Settings Cards */
         .settings-card {
             background-color: white;
             border-radius: 10px;
@@ -134,7 +123,6 @@ $adminData = [
             color: #347433;
         }
 
-        /* Profile Header */
         .profile-header {
             display: flex;
             align-items: center;
@@ -148,30 +136,23 @@ $adminData = [
             width: 100px;
             height: 100px;
             border-radius: 50%;
-            background-color: #f8fafc;
+            background-color: #347433;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #347433;
+            color: white;
             font-size: 36px;
             font-weight: bold;
-            position: relative;
-            overflow: hidden;
             flex-shrink: 0;
             border: 3px solid #347433;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
         }
 
         .profile-pic-large img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-        }
-
-        .initials-fallback {
-            font-size: 36px;
-            font-weight: bold;
-            color: #347433;
         }
 
         .profile-info h2 {
@@ -194,7 +175,6 @@ $adminData = [
             color: #94a3b8;
         }
 
-        /* Form Styles */
         .form-group {
             margin-bottom: 20px;
             position: relative;
@@ -214,8 +194,8 @@ $adminData = [
             border: 1px solid #cbd5e1;
             border-radius: 8px;
             font-size: 15px;
-            transition: all 0.2s;
             background-color: white;
+            transition: all 0.3s;
         }
 
         .form-group input:focus {
@@ -227,41 +207,62 @@ $adminData = [
         .form-group input:disabled {
             background-color: #f1f5f9;
             color: #94a3b8;
-            cursor: not-allowed;
         }
 
-        .password-container {
+        .phone-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            background-color: white;
+            transition: all 0.3s;
+        }
+
+        .phone-input:focus {
+            outline: none;
+            border-color: #347433;
+            box-shadow: 0 0 0 3px rgba(52, 116, 51, 0.1);
+        }
+
+        .password-wrapper {
             position: relative;
+        }
+
+        .password-wrapper input {
+            width: 100%;
+            padding: 12px 45px 12px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            background-color: white;
+            transition: all 0.3s;
+        }
+
+        .password-wrapper input:focus {
+            outline: none;
+            border-color: #347433;
+            box-shadow: 0 0 0 3px rgba(52, 116, 51, 0.1);
         }
 
         .toggle-password {
             position: absolute;
-            right: 15px;
-            top: 30px;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
             background: none;
             border: none;
-            color: #64748b;
+            color: #94a3b8;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
             padding: 5px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            transition: color 0.2s;
         }
 
         .toggle-password:hover {
             color: #347433;
         }
 
-        .error-message {
-            color: #dc2626;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
-
-        /* Button Styles */
         .button-group {
             display: flex;
             gap: 12px;
@@ -286,12 +287,18 @@ $adminData = [
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .btn-primary {
             background-color: #347433;
             color: white;
         }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             background-color: #2c622b;
         }
 
@@ -301,7 +308,7 @@ $adminData = [
             border: 1px solid #cbd5e1;
         }
 
-        .btn-secondary:hover {
+        .btn-secondary:hover:not(:disabled) {
             background-color: #e2e8f0;
         }
 
@@ -323,7 +330,6 @@ $adminData = [
             background-color: #e2e8f0;
         }
 
-        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -335,7 +341,6 @@ $adminData = [
             z-index: 1000;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(2px);
         }
 
         .modal.active {
@@ -348,17 +353,11 @@ $adminData = [
             max-width: 400px;
             border-radius: 12px;
             overflow: hidden;
-            animation: modalSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        @keyframes modalSlide {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
         }
 
         .modal-header {
             padding: 20px;
-            background-color: #dc2626;
+            background-color: #347433;
             color: white;
             display: flex;
             justify-content: space-between;
@@ -368,7 +367,6 @@ $adminData = [
         .modal-header h3 {
             margin: 0;
             font-size: 18px;
-            font-weight: 600;
         }
 
         .modal-close {
@@ -377,45 +375,11 @@ $adminData = [
             color: white;
             font-size: 24px;
             cursor: pointer;
-            padding: 0;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .modal-body {
             padding: 25px;
             text-align: center;
-        }
-
-        .modal-message {
-            margin-bottom: 20px;
-            font-size: 15px;
-            color: #475569;
-            line-height: 1.5;
-        }
-
-        .modal-icon {
-            font-size: 48px;
-            color: #dc2626;
-            margin-bottom: 15px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-danger {
-            background-color: #dc2626;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background-color: #b91c1c;
         }
 
         .preview-image {
@@ -440,70 +404,113 @@ $adminData = [
             border-radius: 8px;
             cursor: pointer;
             font-size: 15px;
-            margin-bottom: 15px;
+            margin: 15px 0;
             transition: all 0.2s;
         }
 
         .file-label:hover {
             background-color: #2c622b;
-            transform: translateY(-1px);
         }
 
-        /* Success Message (Top Right) */
-        .success-message {
-            position: fixed;
-            top: 90px;
-            right: 25px;
-            background-color: #347433;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            display: none;
-            z-index: 999;
-            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(52, 116, 51, 0.3);
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
         }
 
-        .error-notification {
-            position: fixed;
-            top: 90px;
-            right: 25px;
+        .modal-buttons .btn {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .btn-danger {
             background-color: #dc2626;
             color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+
+        .notification-container {
+            position: fixed;
+            top: 90px;
+            right: 25px;
+            z-index: 999;
+        }
+
+        .notification {
             padding: 12px 20px;
             border-radius: 8px;
             font-size: 14px;
             display: none;
-            z-index: 999;
-            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification.show {
+            display: flex;
+        }
+
+        .notification.success {
+            background-color: #347433;
+            color: white;
+        }
+
+        .notification.error {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #347433;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
-        /* Responsive Design */
         @media (max-width: 768px) {
             .profile-content {
                 margin-left: 70px;
                 width: calc(100% - 70px);
-                padding: 20px;
-            }
-            
-            .sidebar.collapsed ~ .profile-content {
-                margin-left: 70px;
-                width: calc(100% - 70px);
-            }
-
-            .sidebar.auto-hide ~ .profile-content {
-                margin-left: 70px !important;
-                width: calc(100% - 70px) !important;
-            }
-            
-            .settings-card {
                 padding: 20px;
             }
             
@@ -520,629 +527,420 @@ $adminData = [
                 width: 100%;
                 justify-content: center;
             }
-            
-            .success-message, .error-notification {
-                top: 70px;
-                right: 15px;
-                left: 15px;
-                text-align: center;
-            }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 576px) {
             .profile-content {
                 margin-left: 0;
                 width: 100%;
                 padding: 15px;
-                margin-top: 60px;
             }
-            
-            .sidebar.collapsed ~ .profile-content,
-            .sidebar.auto-hide ~ .profile-content {
-                margin-left: 0 !important;
-                width: 100% !important;
-            }
-            
-            .modal-content {
-                width: 95%;
-                max-width: 95%;
-                margin: 15px;
-            }
-            
-            .modal-buttons {
-                flex-direction: column;
-            }
-        }
-
-        /* Smooth sidebar transition */
-        .profile-content, .sidebar, .navbar {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
     </style>
 </head>
-<body data-sidebar-mode="<?php echo $sidebarMode; ?>">
-    <?php include 'Sidebar.php'; ?>
-    <?php include 'NavigationBar.php'; ?>
-
-    <!-- Profile Content -->
+<body>
     <div class="profile-content">
         <div class="page-header">
-            <h1 class="page-title">Profile Settings</h1>
+            <h1 class="page-title-large">Profile Settings</h1>
             <p class="page-subtitle">Manage your personal information and password</p>
         </div>
 
         <div class="profile-layout">
-            <!-- Left Card: Personal Information -->
             <div class="settings-card">
                 <h3><i class="fas fa-user-circle"></i> Personal Information</h3>
                 
                 <div class="profile-header">
-                    <div class="profile-pic-large" id="currentProfilePic">
-                        <?php 
-                        // Display profile_icon.png from Images folder
-                        $profilePicPath = $adminData['profile_pic'];
-                        ?>
-                        <img src="<?php echo $profilePicPath; ?>" alt="Profile Picture" 
-                             onerror="this.style.display='none'; document.getElementById('initialsFallback').style.display='flex';">
-                        <div class="initials-fallback" id="initialsFallback" style="display: none;">
-                            <?php echo substr($adminData['first_name'], 0, 1) . substr($adminData['last_name'], 0, 1); ?>
-                        </div>
+                    <div class="profile-pic-large" id="profilePicLarge">
+                        <span id="largeInitials">AU</span>
+                        <img id="largeImage" src="" alt="" style="display: none;">
                     </div>
                     <div class="profile-info">
-                        <h2><?php echo $adminData['first_name'] . ' ' . $adminData['last_name']; ?></h2>
-                        <p><i class="fas fa-user-tag"></i> <?php echo $adminData['position']; ?></p>
-                        <p><i class="fas fa-clock"></i> Last login: <?php echo $adminData['last_login']; ?></p>
+                        <h2 id="displayName">Loading...</h2>
+                        <p><i class="fas fa-user-tag"></i> <span id="displayPosition">System Administrator</span></p>
+                        <p><i class="fas fa-clock"></i> <span id="displayLastLogin">Just now</span></p>
                         <button class="btn-change-pic" onclick="openProfilePicModal()">
-                            <i class="fas fa-camera"></i> Upload Picture
+                            <i class="fas fa-camera"></i> Change Picture
                         </button>
                     </div>
                 </div>
 
                 <form id="profileForm">
                     <div class="form-group">
-                        <label for="firstName">First Name</label>
-                        <input type="text" id="firstName" value="<?php echo $adminData['first_name']; ?>">
+                        <label>First Name</label>
+                        <input type="text" id="firstName" value="">
                     </div>
                     
                     <div class="form-group">
-                        <label for="lastName">Last Name</label>
-                        <input type="text" id="lastName" value="<?php echo $adminData['last_name']; ?>">
+                        <label>Last Name</label>
+                        <input type="text" id="lastName" value="">
                     </div>
 
                     <div class="form-group">
-                        <label for="email">E-mail Address</label>
-                        <input type="email" id="email" value="<?php echo $adminData['email']; ?>">
+                        <label>E-mail Address</label>
+                        <input type="email" id="email" value="<?php echo htmlspecialchars($userEmail); ?>" disabled>
                     </div>
 
                     <div class="form-group">
-                        <label for="phone">Mobile Number</label>
-                        <input type="tel" id="phone" value="<?php echo $adminData['phone']; ?>">
+                        <label>Mobile Number</label>
+                        <input type="tel" id="phone" class="phone-input" value="" maxlength="11" pattern="[0-9]{11}" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
                     </div>
 
                     <div class="button-group">
                         <button type="button" class="btn btn-secondary" onclick="showCancelModal()">
-                            <i class="fas fa-times"></i> Cancel
+                            Cancel
                         </button>
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-check"></i> Save Changes
+                            Save Changes
                         </button>
                     </div>
                 </form>
             </div>
 
-            <!-- Right Card: Password Settings -->
             <div class="settings-card">
                 <h3><i class="fas fa-key"></i> Password Settings</h3>
                 
-                <div class="form-group password-container">
-                    <label for="currentPassword">Current Password</label>
-                    <input type="password" id="currentPassword" placeholder="Enter current password">
-                    <button type="button" class="toggle-password" onclick="togglePassword('currentPassword')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <div class="error-message" id="currentPassError"></div>
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="currentPassword" placeholder="Enter current password">
+                        <button type="button" class="toggle-password" onclick="togglePassword('currentPassword', this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="form-group password-container">
-                    <label for="newPassword">New Password</label>
-                    <input type="password" id="newPassword" placeholder="Enter new password">
-                    <button type="button" class="toggle-password" onclick="togglePassword('newPassword')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <div class="error-message" id="newPassError"></div>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="newPassword" placeholder="Enter new password">
+                        <button type="button" class="toggle-password" onclick="togglePassword('newPassword', this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="form-group password-container">
-                    <label for="confirmPassword">Confirm Password</label>
-                    <input type="password" id="confirmPassword" placeholder="Confirm new password">
-                    <button type="button" class="toggle-password" onclick="togglePassword('confirmPassword')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <div class="error-message" id="confirmPassError"></div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="confirmPassword" placeholder="Confirm new password">
+                        <button type="button" class="toggle-password" onclick="togglePassword('confirmPassword', this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="button-group">
                     <button type="button" class="btn btn-secondary" onclick="clearPasswordFields()">
-                        <i class="fas fa-broom"></i> Clear Fields
+                        Clear
                     </button>
-                    <button type="button" class="btn btn-primary" onclick="validateAndUpdatePassword()">
-                        <i class="fas fa-key"></i> Update Password
+                    <button type="button" class="btn btn-primary" onclick="updatePassword()" id="updatePasswordBtn">
+                        Update Password
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Profile Picture Modal -->
     <div class="modal" id="picModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Upload Profile Picture</h3>
+                <h3>Change Profile Picture</h3>
                 <button class="modal-close" onclick="closeModal('picModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="preview-container">
-                    <img src="" alt="Profile Preview" class="preview-image" id="imagePreview">
-                    <div class="profile-pic-large" id="modalProfilePic" style="margin: 0 auto 15px;">
-                        <img src="<?php echo $adminData['profile_pic']; ?>" alt="Current Profile" 
-                             onerror="this.style.display='none'; document.getElementById('modalFallback').style.display='flex';">
-                        <div class="initials-fallback" id="modalFallback" style="display: none;">
-                            <?php echo substr($adminData['first_name'], 0, 1) . substr($adminData['last_name'], 0, 1); ?>
-                        </div>
-                    </div>
-                    <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Current profile picture</p>
-                    
-                    <input type="file" id="profileImage" class="file-input" accept="image/*" onchange="previewImage()">
-                    <label for="profileImage" class="file-label">
-                        <i class="fas fa-upload"></i> Choose New Photo
-                    </label>
+                <img src="" alt="Preview" class="preview-image" id="imagePreview">
+                <div class="profile-pic-large" style="margin: 0 auto;">
+                    <span id="modalInitials">AU</span>
+                    <img id="modalImage" src="" alt="" style="display: none;">
                 </div>
-                
+                <input type="file" id="profileImageInput" class="file-input" accept="image/*">
+                <label for="profileImageInput" class="file-label">
+                    Choose New Photo
+                </label>
                 <div class="modal-buttons">
-                    <button class="btn btn-secondary" onclick="closeModal('picModal')" style="flex: 1;">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button class="btn btn-primary" onclick="saveProfilePicture()" style="flex: 1;">
-                        <i class="fas fa-check"></i> Save Picture
-                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal('picModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveProfilePicture()">Save</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Cancel Confirmation Modal (Red) -->
     <div class="modal" id="cancelModal">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header" style="background-color:#dc2626">
                 <h3>Discard Changes</h3>
                 <button class="modal-close" onclick="closeModal('cancelModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="modal-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <p class="modal-message">Are you sure you want to discard all changes? All unsaved modifications will be lost.</p>
+                <div class="modal-icon" style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                <p style="margin-bottom: 20px;">Discard all changes?</p>
                 <div class="modal-buttons">
-                    <button class="btn btn-secondary" onclick="closeModal('cancelModal')" style="flex: 1;">
-                        No, Keep Changes
-                    </button>
-                    <button class="btn btn-danger" onclick="discardChanges()" style="flex: 1;">
-                        <i class="fas fa-trash"></i> Yes, Discard
-                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal('cancelModal')">No</button>
+                    <button class="btn btn-danger" onclick="discardChanges()">Yes</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Success Message (Green - Top Right) -->
-    <div class="success-message" id="successMsg"></div>
+    <div class="notification-container" id="notificationContainer"></div>
 
-    <!-- Error Notification (Red - Top Right) -->
-    <div class="error-notification" id="errorMsg"></div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
 
     <script>
-        // ============ SIDEBAR INTEGRATION - AUTO-HIDE SUPPORT ============
-        // Get current sidebar mode from session
-        let currentSidebarMode = '<?php echo $sidebarMode; ?>';
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+        const auth = firebase.auth();
+        const userUid = '<?php echo $userUid; ?>';
 
-        // Listen for sidebar mode changes
-        document.addEventListener('sidebarModeChanged', function(e) {
-            console.log('Sidebar mode changed to:', e.detail.mode);
-            currentSidebarMode = e.detail.mode;
-            
-            // Force content position adjustment
+        function showNotification(msg, type) {
+            const div = document.createElement('div');
+            div.className = `notification ${type}`;
+            div.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${msg}`;
+            document.getElementById('notificationContainer').appendChild(div);
+            setTimeout(() => div.classList.add('show'), 10);
             setTimeout(() => {
-                adjustContentPosition();
-            }, 50);
-        });
-
-        // Listen for sidebar auto-hide hover events
-        document.addEventListener('sidebarAutoHide', function(e) {
-            console.log('Sidebar auto-hide hover:', e.detail.expanded);
-            
-            // Force immediate position adjustment on hover
-            setTimeout(() => {
-                adjustContentPosition();
-            }, 10);
-        });
-
-        // Listen for sidebar manual toggle events
-        document.addEventListener('sidebarToggled', function(e) {
-            console.log('Sidebar manually toggled:', e.detail.collapsed);
-            
-            // Force immediate position adjustment
-            setTimeout(() => {
-                adjustContentPosition();
-            }, 10);
-        });
-
-        // Function to adjust content position based on sidebar state
-        function adjustContentPosition() {
-            const sidebar = document.getElementById('sidebar');
-            const content = document.querySelector('.profile-content');
-            
-            if (!sidebar || !content) return;
-            
-            const isAutoHide = sidebar.classList.contains('auto-hide');
-            const isCollapsed = sidebar.classList.contains('collapsed');
-            const isHovered = sidebar.matches(':hover') && isAutoHide;
-            
-            // Calculate sidebar width
-            let sidebarWidth;
-            
-            if (isAutoHide) {
-                if (isHovered) {
-                    sidebarWidth = 240; // Expanded on hover
-                } else {
-                    sidebarWidth = 70; // Collapsed normally
-                }
-            } else {
-                if (isCollapsed) {
-                    sidebarWidth = 70;
-                } else {
-                    sidebarWidth = 240;
-                }
-            }
-            
-            console.log('Adjusting profile content position:', {
-                mode: isAutoHide ? 'auto-hide' : 'manual',
-                isAutoHide,
-                isCollapsed,
-                isHovered,
-                sidebarWidth
-            });
-            
-            // Update content position
-            content.style.marginLeft = sidebarWidth + 'px';
-            content.style.width = `calc(100% - ${sidebarWidth}px)`;
-            content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            
-            // Update success/error message positions
-            const successMsg = document.getElementById('successMsg');
-            const errorMsg = document.getElementById('errorMsg');
-            
-            if (successMsg) {
-                successMsg.style.right = '25px';
-                successMsg.style.left = 'auto';
-            }
-            if (errorMsg) {
-                errorMsg.style.right = '25px';
-                errorMsg.style.left = 'auto';
-            }
-            
-            // Force a reflow
-            void content.offsetWidth;
+                div.classList.remove('show');
+                setTimeout(() => div.remove(), 300);
+            }, 3000);
         }
 
-        // Hook into global update function if it exists
-        if (typeof window.updateAllPositions === 'function') {
-            const originalUpdateAllPositions = window.updateAllPositions;
-            window.updateAllPositions = function() {
-                originalUpdateAllPositions();
-                adjustContentPosition();
-            };
-        }
-
-        // Make function globally available
-        window.adjustContentPosition = adjustContentPosition;
-        // ============ END SIDEBAR INTEGRATION ============
-
-        // Profile picture state
-        let currentProfilePicture = {
-            type: 'image',
-            imageUrl: '<?php echo $adminData["profile_pic"]; ?>',
-            initials: '<?php echo substr($adminData["first_name"], 0, 1) . substr($adminData["last_name"], 0, 1); ?>'
-        };
-
-        // Toggle password visibility
-        function togglePassword(fieldId) {
-            const field = document.getElementById(fieldId);
-            const icon = field.nextElementSibling.querySelector('i');
-            
-            if (field.type === 'password') {
-                field.type = 'text';
+        function togglePassword(id, btn) {
+            const input = document.getElementById(id);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
                 icon.className = 'fas fa-eye-slash';
             } else {
-                field.type = 'password';
+                input.type = 'password';
                 icon.className = 'fas fa-eye';
             }
         }
 
-        // Clear all password fields
+        function adjustContentPosition() {
+            const sidebar = document.getElementById('sidebar');
+            const content = document.querySelector('.profile-content');
+            if (!sidebar || !content) return;
+            const isAutoHide = sidebar.classList.contains('auto-hide');
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            const isHovered = sidebar.matches(':hover') && isAutoHide;
+            let w = 240;
+            if (isAutoHide && !isHovered) w = 70;
+            else if (isCollapsed) w = 70;
+            content.style.marginLeft = w + 'px';
+            content.style.width = `calc(100% - ${w}px)`;
+        }
+
+        async function loadUserData() {
+            try {
+                document.getElementById('loadingOverlay').classList.add('active');
+                const doc = await db.collection('users').doc(userUid).get();
+                if (doc.exists) {
+                    const d = doc.data();
+                    document.getElementById('firstName').value = d.firstName || '';
+                    document.getElementById('lastName').value = d.lastName || '';
+                    document.getElementById('phone').value = d.phone || '';
+                    
+                    const fn = d.firstName || 'Admin';
+                    const ln = d.lastName || 'User';
+                    const full = `${fn} ${ln}`.trim();
+                    document.getElementById('displayName').textContent = full;
+                    
+                    const inits = fn.charAt(0).toUpperCase() + ln.charAt(0).toUpperCase();
+                    document.getElementById('largeInitials').textContent = inits;
+                    document.getElementById('modalInitials').textContent = inits;
+                    
+                    if (d.profilePicUrl) {
+                        document.getElementById('largeImage').src = d.profilePicUrl;
+                        document.getElementById('largeImage').style.display = 'block';
+                        document.getElementById('largeInitials').style.display = 'none';
+                        document.getElementById('modalImage').src = d.profilePicUrl;
+                        document.getElementById('modalImage').style.display = 'block';
+                        document.getElementById('modalInitials').style.display = 'none';
+                    }
+                    if (window.updateNavbarName) window.updateNavbarName(full);
+                    if (window.updateNavbarProfile && d.profilePicUrl) window.updateNavbarProfile(d.profilePicUrl);
+                }
+            } catch (e) {
+                showNotification('Error loading data', 'error');
+            } finally {
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const first = document.getElementById('firstName').value.trim();
+            const last = document.getElementById('lastName').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            if (!first || !last) return showNotification('First and last name required', 'error');
+            if (phone && !/^\d{11}$/.test(phone)) return showNotification('Mobile number must be 11 digits', 'error');
+            
+            document.getElementById('loadingOverlay').classList.add('active');
+            try {
+                await db.collection('users').doc(userUid).update({ firstName: first, lastName: last, phone: phone });
+                const full = `${first} ${last}`.trim();
+                document.getElementById('displayName').textContent = full;
+                const inits = first.charAt(0).toUpperCase() + last.charAt(0).toUpperCase();
+                document.getElementById('largeInitials').textContent = inits;
+                document.getElementById('modalInitials').textContent = inits;
+                if (window.updateNavbarName) window.updateNavbarName(full);
+                showNotification('Profile saved!', 'success');
+            } catch (e) {
+                showNotification('Error saving profile', 'error');
+            } finally {
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }
+        });
+
+        document.getElementById('profileImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function saveProfilePicture() {
+            const file = document.getElementById('profileImageInput').files[0];
+            if (!file) { closeModal('picModal'); return; }
+            if (!file.type.match('image.*')) { showNotification('Please select an image', 'error'); return; }
+            if (file.size > 2 * 1024 * 1024) { showNotification('File size must be less than 2MB', 'error'); return; }
+            
+            document.getElementById('loadingOverlay').classList.add('active');
+            try {
+                const fileName = `${Date.now()}_${file.name}`;
+                const ref = storage.ref().child(`profile_pictures/${userUid}/${fileName}`);
+                await ref.put(file);
+                const url = await ref.getDownloadURL();
+                await db.collection('users').doc(userUid).update({ profilePicUrl: url });
+                
+                document.getElementById('largeImage').src = url;
+                document.getElementById('largeImage').style.display = 'block';
+                document.getElementById('largeInitials').style.display = 'none';
+                document.getElementById('modalImage').src = url;
+                document.getElementById('modalImage').style.display = 'block';
+                document.getElementById('modalInitials').style.display = 'none';
+                
+                if (window.updateNavbarProfile) window.updateNavbarProfile(url);
+                showNotification('Picture updated!', 'success');
+                closeModal('picModal');
+            } catch (e) {
+                showNotification('Error uploading picture', 'error');
+            } finally {
+                document.getElementById('loadingOverlay').classList.remove('active');
+                document.getElementById('profileImageInput').value = '';
+                document.getElementById('imagePreview').style.display = 'none';
+            }
+        }
+
+        async function updatePassword() {
+            const current = document.getElementById('currentPassword').value;
+            const newPass = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            if (!current || !newPass || !confirm) {
+                return showNotification('Please fill all fields', 'error');
+            }
+
+            if (newPass !== confirm) {
+                return showNotification('Passwords do not match', 'error');
+            }
+
+            if (newPass.length < 8) {
+                return showNotification('Password must be at least 8 characters', 'error');
+            }
+
+            const btn = document.getElementById('updatePasswordBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            document.getElementById('loadingOverlay').classList.add('active');
+
+            try {
+                const user = firebase.auth().currentUser;
+
+                if (!user) {
+                    throw new Error("User not logged in");
+                }
+
+                const credential = firebase.auth.EmailAuthProvider.credential(
+                    user.email,
+                    current
+                );
+
+                await user.reauthenticateWithCredential(credential);
+                await user.updatePassword(newPass);
+
+                showNotification('Password updated successfully!', 'success');
+
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+
+            } catch (error) {
+                let msg = 'Error updating password';
+
+                if (
+                    error.code === 'auth/wrong-password' ||
+                    error.code === 'auth/invalid-credential'
+                ) {
+                    msg = 'Current password is incorrect';
+                } 
+                else if (error.code === 'auth/weak-password') {
+                    msg = 'New password is too weak';
+                } 
+                else if (error.code === 'auth/requires-recent-login') {
+                    msg = 'Please login again';
+                } 
+                else {
+                    msg = error.message;
+                }
+
+                showNotification(msg, 'error');
+                console.error(error);
+
+            } finally {
+                document.getElementById('loadingOverlay').classList.remove('active');
+                btn.disabled = false;
+                btn.innerHTML = 'Update Password';
+            }
+        }
+
+        function openProfilePicModal() { document.getElementById('picModal').classList.add('active'); }
+        function closeModal(id) { 
+            document.getElementById(id).classList.remove('active');
+            if (id === 'picModal') {
+                document.getElementById('imagePreview').style.display = 'none';
+                document.getElementById('profileImageInput').value = '';
+            }
+        }
+        function showCancelModal() { document.getElementById('cancelModal').classList.add('active'); }
+        async function discardChanges() { 
+            closeModal('cancelModal');
+            await loadUserData();
+            showNotification('Changes discarded', 'success');
+        }
         function clearPasswordFields() {
             document.getElementById('currentPassword').value = '';
             document.getElementById('newPassword').value = '';
             document.getElementById('confirmPassword').value = '';
-            
-            // Reset to password type
-            ['currentPassword', 'newPassword', 'confirmPassword'].forEach(id => {
-                document.getElementById(id).type = 'password';
-            });
-            
-            // Reset eye icons
-            document.querySelectorAll('.toggle-password i').forEach(icon => {
-                icon.className = 'fas fa-eye';
-            });
-            
-            // Clear error messages
-            clearPasswordErrors();
-            
-            // Show success message
-            showSuccessMessage('Password fields cleared');
         }
 
-        // Clear error messages
-        function clearPasswordErrors() {
-            document.getElementById('currentPassError').style.display = 'none';
-            document.getElementById('newPassError').style.display = 'none';
-            document.getElementById('confirmPassError').style.display = 'none';
-        }
-
-        // Validate and update password
-        function validateAndUpdatePassword() {
-            const current = document.getElementById('currentPassword').value.trim();
-            const newPass = document.getElementById('newPassword').value.trim();
-            const confirm = document.getElementById('confirmPassword').value.trim();
-            
-            let isValid = true;
-            clearPasswordErrors();
-            
-            // Validate current password
-            if (!current) {
-                document.getElementById('currentPassError').textContent = 'Please enter current password';
-                document.getElementById('currentPassError').style.display = 'block';
-                isValid = false;
-            }
-            
-            // Validate new password
-            if (!newPass) {
-                document.getElementById('newPassError').textContent = 'Please enter new password';
-                document.getElementById('newPassError').style.display = 'block';
-                isValid = false;
-            } else if (newPass.length < 8) {
-                document.getElementById('newPassError').textContent = 'Password must be at least 8 characters';
-                document.getElementById('newPassError').style.display = 'block';
-                isValid = false;
-            }
-            
-            // Validate confirm password
-            if (!confirm) {
-                document.getElementById('confirmPassError').textContent = 'Please confirm password';
-                document.getElementById('confirmPassError').style.display = 'block';
-                isValid = false;
-            } else if (newPass !== confirm) {
-                document.getElementById('confirmPassError').textContent = 'Passwords do not match';
-                document.getElementById('confirmPassError').style.display = 'block';
-                isValid = false;
-            }
-            
-            if (isValid) {
-                updatePassword();
-            }
-        }
-
-        // Update password
-        function updatePassword() {
-            // Simulate password update
-            showSuccessMessage('Password updated successfully!');
-            
-            // Clear fields after success
-            setTimeout(() => {
-                document.getElementById('currentPassword').value = '';
-                document.getElementById('newPassword').value = '';
-                document.getElementById('confirmPassword').value = '';
-                
-                // Reset to password type
-                ['currentPassword', 'newPassword', 'confirmPassword'].forEach(id => {
-                    document.getElementById(id).type = 'password';
-                });
-                
-                // Reset eye icons
-                document.querySelectorAll('.toggle-password i').forEach(icon => {
-                    icon.className = 'fas fa-eye';
-                });
-                
-                // Clear error messages
-                clearPasswordErrors();
-            }, 500);
-        }
-
-        // Show cancel confirmation modal
-        function showCancelModal() {
-            document.getElementById('cancelModal').classList.add('active');
-        }
-
-        // Close specific modal
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-        }
-
-        // Discard changes
-        function discardChanges() {
-            document.getElementById('firstName').value = '<?php echo $adminData["first_name"]; ?>';
-            document.getElementById('lastName').value = '<?php echo $adminData["last_name"]; ?>';
-            document.getElementById('email').value = '<?php echo $adminData["email"]; ?>';
-            document.getElementById('phone').value = '<?php echo $adminData["phone"]; ?>';
-            
-            // Close modal
-            closeModal('cancelModal');
-            
-            // Show success message
-            showSuccessMessage('Changes discarded successfully');
-        }
-
-        // Profile form handling
-        document.getElementById('profileForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            saveProfile();
-        });
-
-        function saveProfile() {
-            const firstName = document.getElementById('firstName').value;
-            const lastName = document.getElementById('lastName').value;
-            
-            // Update profile header
-            document.querySelector('.profile-info h2').textContent = firstName + ' ' + lastName;
-            
-            // Update initials fallback
-            if (currentProfilePicture.type === 'initials') {
-                const initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
-                currentProfilePicture.initials = initials;
-                updateProfilePictureDisplay();
-            }
-            
-            // Show success message
-            showSuccessMessage('Profile information saved successfully!');
-        }
-
-        // Profile picture functions
-        function openProfilePicModal() {
-            document.getElementById('picModal').classList.add('active');
-        }
-
-        function previewImage() {
-            const input = document.getElementById('profileImage');
-            const preview = document.getElementById('imagePreview');
-            const modalPic = document.getElementById('modalProfilePic');
-            
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    
-                    // Hide the current profile pic in modal
-                    modalPic.style.display = 'none';
-                    
-                    currentProfilePicture.type = 'image';
-                    currentProfilePicture.imageUrl = e.target.result;
-                }
-                
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        function updateProfilePictureDisplay() {
-            const profilePic = document.getElementById('currentProfilePic');
-            const modalPic = document.getElementById('modalProfilePic');
-            
-            if (currentProfilePicture.type === 'image') {
-                profilePic.innerHTML = `<img src="${currentProfilePicture.imageUrl}" alt="Profile" 
-                                         onerror="this.style.display='none'; document.getElementById('initialsFallback').style.display='flex';">`;
-                if (modalPic) {
-                    modalPic.innerHTML = `<img src="${currentProfilePicture.imageUrl}" alt="Profile">`;
-                    modalPic.style.display = 'flex';
-                }
-            } else {
-                profilePic.innerHTML = `<div class="initials-fallback" style="display: flex;">${currentProfilePicture.initials}</div>`;
-                if (modalPic) {
-                    modalPic.innerHTML = `<div class="initials-fallback" style="display: flex;">${currentProfilePicture.initials}</div>`;
-                    modalPic.style.display = 'flex';
-                }
-            }
-        }
-
-        function saveProfilePicture() {
-            updateProfilePictureDisplay();
-            closeModal('picModal');
-            showSuccessMessage('Profile picture updated successfully!');
-        }
-
-        // Show success message (green)
-        function showSuccessMessage(msg) {
-            const successDiv = document.getElementById('successMsg');
-            const errorDiv = document.getElementById('errorMsg');
-            
-            // Hide error first
-            errorDiv.style.display = 'none';
-            
-            // Show success
-            successDiv.textContent = msg;
-            successDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                successDiv.style.display = 'none';
-            }, 3000);
-        }
-
-        // Show error message (red)
-        function showErrorMessage(msg) {
-            const successDiv = document.getElementById('successMsg');
-            const errorDiv = document.getElementById('errorMsg');
-            
-            // Hide success first
-            successDiv.style.display = 'none';
-            
-            // Show error
-            errorDiv.textContent = msg;
-            errorDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 3000);
-        }
-
-        // Close modal when clicking outside
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('modal')) {
-                document.querySelectorAll('.modal').forEach(modal => {
-                    modal.classList.remove('active');
-                });
-            }
-        });
-
-        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Initial position adjustment
-            setTimeout(() => {
-                adjustContentPosition();
-            }, 100);
-            
-            // Check for sidebar state changes periodically
-            setInterval(() => {
-                const sidebar = document.getElementById('sidebar');
-                if (sidebar) {
-                    const currentClasses = sidebar.className;
-                    
-                    if (window.lastSidebarClasses !== currentClasses) {
-                        window.lastSidebarClasses = currentClasses;
-                        adjustContentPosition();
-                    }
-                }
-            }, 100);
-            
-            // Check if profile image loads successfully
-            const profileImg = document.querySelector('#currentProfilePic img');
-            if (profileImg) {
-                profileImg.onerror = function() {
-                    this.style.display = 'none';
-                    const initialsFallback = document.getElementById('initialsFallback');
-                    if (initialsFallback) {
-                        initialsFallback.style.display = 'flex';
-                    }
-                };
+            adjustContentPosition();
+            loadUserData();
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.addEventListener('mouseenter', () => setTimeout(adjustContentPosition, 50));
+                sidebar.addEventListener('mouseleave', () => setTimeout(adjustContentPosition, 50));
             }
+            document.addEventListener('sidebarToggled', adjustContentPosition);
+            document.addEventListener('sidebarModeChanged', adjustContentPosition);
         });
     </script>
 </body>

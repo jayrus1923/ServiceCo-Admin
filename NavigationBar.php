@@ -1,13 +1,13 @@
 <?php
-// Navigation Bar - FIXED AUTO-HIDE SYNC
+$userUid = isset($_SESSION['user_uid']) ? $_SESSION['user_uid'] : (isset($_COOKIE['user_uid']) ? $_COOKIE['user_uid'] : '');
+$userEmail = isset($_SESSION['user_email']) ? $_SESSION['user_email'] : (isset($_COOKIE['user_email']) ? urldecode($_COOKIE['user_email']) : '');
 ?>
 <nav class="navbar" id="navbar">
     <style>
-        /* Navigation Bar Styles */
         .navbar {
             position: fixed;
             top: 0;
-            left: 240px; /* Default sidebar width */
+            left: 240px;
             right: 0;
             height: 70px;
             background-color: white;
@@ -20,13 +20,11 @@
             transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* When sidebar is collapsed or auto-hide */
         .sidebar.collapsed ~ .navbar,
         .sidebar.auto-hide ~ .navbar {
             left: 70px !important;
         }
 
-        /* IMPORTANT: Fixed auto-hide hover */
         .sidebar.auto-hide:hover ~ .navbar {
             left: 240px !important;
         }
@@ -58,7 +56,6 @@
             font-size: 20px;
             font-weight: 700;
             line-height: 1;
-            letter-spacing: 0.5px;
         }
 
         .logo-service {
@@ -73,7 +70,6 @@
             font-size: 12px;
             color: #6b7280;
             margin-top: 2px;
-            letter-spacing: 0.5px;
         }
 
         .page-title {
@@ -115,24 +111,16 @@
             justify-content: center;
             border: 2px solid #347433;
             overflow: hidden;
+            background-color: #347433;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
         }
 
         .profile-pic img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-        }
-
-        .initials-fallback {
-            width: 100%;
-            height: 100%;
-            background-color: #347433;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
         }
 
         .profile-info {
@@ -165,7 +153,6 @@
             transform: rotate(180deg);
         }
 
-        /* Profile Dropdown Menu */
         .profile-dropdown {
             position: absolute;
             top: 100%;
@@ -202,6 +189,7 @@
         .dropdown-header .profile-pic {
             width: 50px;
             height: 50px;
+            font-size: 20px;
         }
 
         .dropdown-header .profile-info {
@@ -211,10 +199,6 @@
         .dropdown-header .profile-name {
             font-size: 16px;
             margin-bottom: 3px;
-        }
-
-        .dropdown-header .profile-role {
-            font-size: 13px;
         }
 
         .dropdown-menu {
@@ -230,11 +214,6 @@
             text-decoration: none;
             transition: background-color 0.2s ease;
             cursor: pointer;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            font-size: 14px;
         }
 
         .dropdown-item:hover {
@@ -244,13 +223,7 @@
 
         .dropdown-item i {
             width: 20px;
-            text-align: center;
             font-size: 18px;
-        }
-
-        .dropdown-item span {
-            font-size: 14px;
-            font-weight: 500;
         }
 
         .dropdown-divider {
@@ -259,34 +232,16 @@
             margin: 8px 0;
         }
 
-        /* Responsive navbar */
         @media (max-width: 768px) {
             .navbar {
                 left: 70px;
                 padding: 0 20px;
             }
-
             .profile-info {
                 display: none;
             }
-
             .page-title {
                 font-size: 18px;
-                margin-left: 5px;
-                padding-left: 5px;
-            }
-
-            .logo-main {
-                font-size: 18px;
-            }
-
-            .logo-subtitle {
-                font-size: 11px;
-            }
-
-            .profile-dropdown {
-                width: 250px;
-                right: -10px;
             }
         }
 
@@ -294,23 +249,8 @@
             .navbar {
                 left: 0;
             }
-
             .logo-text {
                 display: none;
-            }
-
-            .page-title {
-                font-size: 16px;
-                margin-left: 0;
-                border-left: none;
-            }
-
-            .profile-dropdown {
-                position: fixed;
-                top: 70px;
-                right: 10px;
-                left: 10px;
-                width: auto;
             }
         }
     </style>
@@ -334,8 +274,7 @@
                 'App.php' => 'App Management',
                 'Report.php' => 'Reports',
                 'AccountSettings.php' => 'Account Settings',
-                'ProfileSettings.php' => 'Profile Settings',
-                'Notification.php' => 'Notifications'
+                'ProfileSettings.php' => 'Profile Settings'
             ];
             echo isset($pageTitles[$currentPage]) ? $pageTitles[$currentPage] : 'Dashboard';
             ?>
@@ -344,46 +283,39 @@
 
     <div class="navbar-right">
         <div class="profile-container" id="profileContainer">
-            <div class="profile-pic">
-                <img src="Images/profile_icon.png" alt="Admin Profile" 
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="initials-fallback" style="display: none;">AU</div>
+            <div class="profile-pic" id="profilePic">
+                <span id="profileInitials">AU</span>
+                <img id="profileImage" src="" alt="" style="display: none;">
             </div>
             <div class="profile-info">
-                <div class="profile-name">Admin User</div>
-                <div class="profile-role">System Administrator</div>
+                <div class="profile-name" id="profileName">Loading...</div>
+                <div class="profile-role" id="profileRole">Administrator</div>
             </div>
             <button class="profile-dropdown-btn" id="dropdownBtn">
                 <i class="fas fa-chevron-down"></i>
             </button>
         </div>
 
-        <!-- Profile Dropdown Menu -->
         <div class="profile-dropdown" id="profileDropdown">
             <div class="dropdown-header">
-                <div class="profile-pic">
-                    <img src="Images/profile_icon.png" alt="Admin Profile" 
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <div class="initials-fallback" style="display: none;">AU</div>
+                <div class="profile-pic" id="dropdownProfilePic">
+                    <span id="dropdownInitials">AU</span>
+                    <img id="dropdownImage" src="" alt="" style="display: none;">
                 </div>
                 <div class="profile-info">
-                    <div class="profile-name">Admin User</div>
-                    <div class="profile-role">System Administrator</div>
+                    <div class="profile-name" id="dropdownName">Loading...</div>
+                    <div class="profile-role" id="dropdownRole">Administrator</div>
                 </div>
             </div>
             
             <div class="dropdown-menu">
-                <a href="ProfileSettings.php" class="dropdown-item" id="profileSettingsBtn">
+                <a href="ProfileSettings.php" class="dropdown-item">
                     <i class="fas fa-user-cog"></i>
                     <span>Profile Settings</span>
                 </a>
                 <a href="AccountSettings.php" class="dropdown-item">
                     <i class="fas fa-cog"></i>
                     <span>Account Settings</span>
-                </a>
-                <a href="Notification.php" class="dropdown-item">
-                    <i class="fas fa-bell"></i>
-                    <span>Notifications</span>
                 </a>
                 
                 <div class="dropdown-divider"></div>
@@ -397,97 +329,53 @@
     </div>
 
     <script>
-        // Function to update navbar position
-        function updateNavbarPosition() {
-            const sidebar = document.getElementById('sidebar');
-            const navbar = document.getElementById('navbar');
-            
-            if (sidebar && navbar) {
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                const isAutoHide = sidebar.classList.contains('auto-hide');
-                const isHovered = sidebar.matches(':hover') && isAutoHide;
-                
-                if (isAutoHide && isHovered) {
-                    // Auto-hide and hovered = expanded
-                    navbar.style.left = '240px';
-                } else if (isCollapsed || isAutoHide) {
-                    // Collapsed or auto-hide (not hovered) = collapsed
-                    navbar.style.left = '70px';
-                } else {
-                    // Manual expanded
-                    navbar.style.left = '240px';
-                }
-                
-                console.log('Navbar position updated to:', navbar.style.left);
+        document.addEventListener("DOMContentLoaded", function () {
+            if (typeof firebase === "undefined") {
+                console.error("Firebase not loaded. Make sure Firebase is loaded in main page.");
+                return;
             }
-        }
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            const profileContainer = document.getElementById('profileContainer');
-            const profileDropdown = document.getElementById('profileDropdown');
-            const dropdownBtn = document.getElementById('dropdownBtn');
-            
-            // Toggle dropdown menu
-            if (profileContainer) {
-                profileContainer.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    if (profileDropdown) {
-                        profileDropdown.classList.toggle('active');
-                        dropdownBtn.classList.toggle('rotate');
+            const db = firebase.firestore();
+            const userUid = "<?php echo $userUid; ?>";
+            if (!userUid) {
+                console.log("No user UID found");
+                return;
+            }
+            async function loadUserData() {
+                db.collection("users").doc(userUid).onSnapshot(function(doc) {
+                    if (!doc.exists) return;
+                    const data = doc.data();
+                    const firstName = data.firstName || "Admin";
+                    const lastName = data.lastName || "User";
+                    const fullName = `${firstName} ${lastName}`.trim();
+                    const initials = firstName.charAt(0).toUpperCase() + lastName.charAt(0).toUpperCase();
+                    const profilePicUrl = data.profilePicUrl || null;
+                    document.getElementById("profileName").textContent = fullName;
+                    document.getElementById("dropdownName").textContent = fullName;
+                    document.getElementById("profileRole").textContent = data.position || "System Administrator";
+                    document.getElementById("dropdownRole").textContent = data.position || "System Administrator";
+                    if (profilePicUrl) {
+                        document.getElementById("profileInitials").style.display = "none";
+                        document.getElementById("profileImage").src = profilePicUrl;
+                        document.getElementById("profileImage").style.display = "block";
+                        document.getElementById("dropdownInitials").style.display = "none";
+                        document.getElementById("dropdownImage").src = profilePicUrl;
+                        document.getElementById("dropdownImage").style.display = "block";
+                    } else {
+                        document.getElementById("profileInitials").textContent = initials;
+                        document.getElementById("profileInitials").style.display = "flex";
+                        document.getElementById("profileImage").style.display = "none";
+                        document.getElementById("dropdownInitials").textContent = initials;
+                        document.getElementById("dropdownInitials").style.display = "flex";
+                        document.getElementById("dropdownImage").style.display = "none";
                     }
                 });
             }
-            
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function(e) {
-                if (profileDropdown && profileContainer && 
-                    !profileContainer.contains(e.target) && 
-                    !profileDropdown.contains(e.target)) {
-                    profileDropdown.classList.remove('active');
-                    dropdownBtn.classList.remove('rotate');
-                }
-            });
-            
-            // Update navbar position on load
-            updateNavbarPosition();
-            
-            // Handle profile image error
-            const profileImages = document.querySelectorAll('.profile-pic img');
-            profileImages.forEach(img => {
-                img.onerror = function() {
-                    this.style.display = 'none';
-                    const initials = this.nextElementSibling;
-                    if (initials && initials.classList.contains('initials-fallback')) {
-                        initials.style.display = 'flex';
-                    }
-                };
-            });
-            
-            // Listen for sidebar events
-            document.addEventListener('sidebarToggled', updateNavbarPosition);
-            document.addEventListener('sidebarModeChanged', updateNavbarPosition);
-            
-            // Listen for sidebar hover events
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) {
-                sidebar.addEventListener('mouseenter', function() {
-                    if (this.classList.contains('auto-hide')) {
-                        setTimeout(updateNavbarPosition, 50); // Small delay for transition
-                    }
-                });
-                
-                sidebar.addEventListener('mouseleave', function() {
-                    if (this.classList.contains('auto-hide')) {
-                        setTimeout(updateNavbarPosition, 50);
-                    }
-                });
+            function toggleDropdown() {
+                document.getElementById("profileDropdown").classList.toggle("active");
+                document.getElementById("dropdownBtn").classList.toggle("rotate");
             }
+            document.getElementById("profileContainer").addEventListener("click", toggleDropdown);
+            loadUserData();
         });
-        
-        // Make update function available globally
-        window.updateNavbarPosition = updateNavbarPosition;
-        
-        // Update navbar on window resize
-        window.addEventListener('resize', updateNavbarPosition);
     </script>
 </nav>

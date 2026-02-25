@@ -1,15 +1,12 @@
 <?php
-// Notifications.php - WITH REAL-TIME AUTO-HIDE SUPPORT
 session_start();
 
-// Handle sidebar mode saving (if posted from this page)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sidebar_mode'])) {
     $_SESSION['sidebar_mode'] = $_POST['sidebar_mode'];
     echo json_encode(['success' => true, 'message' => 'Sidebar mode saved']);
     exit;
 }
 
-// Get current sidebar mode
 $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'manual';
 ?>
 <!DOCTYPE html>
@@ -33,7 +30,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             overflow-x: hidden;
         }
 
-        /* Notifications Content - WITH AUTO-HIDE SUPPORT */
         .notifications-content {
             margin-top: 70px;
             padding: 20px;
@@ -43,21 +39,18 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             min-height: calc(100vh - 70px);
         }
 
-        /* Manual mode - collapsed state */
         .sidebar.collapsed ~ .notifications-content {
             margin-left: 70px;
             width: calc(100% - 70px);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* AUTO-HIDE MODE - NORMAL STATE (collapsed) */
         .sidebar.auto-hide ~ .notifications-content {
             margin-left: 70px !important;
             width: calc(100% - 70px) !important;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* AUTO-HIDE MODE - HOVER STATE (expanded) */
         .sidebar.auto-hide:hover ~ .notifications-content {
             margin-left: 240px !important;
             width: calc(100% - 240px) !important;
@@ -310,7 +303,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             }
         }
 
-        /* Smooth sidebar transition */
         .notifications-content, .sidebar, .navbar {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -320,12 +312,10 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
     <?php include 'Sidebar.php'; ?>
     <?php include 'NavigationBar.php'; ?>
 
-    <!-- Success Message -->
     <div class="success-message" id="successMsg">
         <i class="fas fa-check-circle"></i> Settings saved successfully!
     </div>
 
-    <!-- Error Message -->
     <div class="error-message" id="errorMsg">
         <i class="fas fa-exclamation-circle"></i> Error saving settings
     </div>
@@ -513,42 +503,33 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
     </div>
 
     <script>
-        // ============ SIDEBAR INTEGRATION - AUTO-HIDE SUPPORT ============
-        // Get current sidebar mode from session
         let currentSidebarMode = '<?php echo $sidebarMode; ?>';
 
-        // Listen for sidebar mode changes
         document.addEventListener('sidebarModeChanged', function(e) {
             console.log('Sidebar mode changed to:', e.detail.mode);
             currentSidebarMode = e.detail.mode;
             
-            // Force content position adjustment
             setTimeout(() => {
                 adjustContentPosition();
             }, 50);
         });
 
-        // Listen for sidebar auto-hide hover events
         document.addEventListener('sidebarAutoHide', function(e) {
             console.log('Sidebar auto-hide hover:', e.detail.expanded);
             
-            // Force immediate position adjustment on hover
             setTimeout(() => {
                 adjustContentPosition();
             }, 10);
         });
 
-        // Listen for sidebar manual toggle events
         document.addEventListener('sidebarToggled', function(e) {
             console.log('Sidebar manually toggled:', e.detail.collapsed);
             
-            // Force immediate position adjustment
             setTimeout(() => {
                 adjustContentPosition();
             }, 10);
         });
 
-        // Function to adjust content position based on sidebar state
         function adjustContentPosition() {
             const sidebar = document.getElementById('sidebar');
             const content = document.querySelector('.notifications-content');
@@ -559,14 +540,13 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             const isCollapsed = sidebar.classList.contains('collapsed');
             const isHovered = sidebar.matches(':hover') && isAutoHide;
             
-            // Calculate sidebar width
             let sidebarWidth;
             
             if (isAutoHide) {
                 if (isHovered) {
-                    sidebarWidth = 240; // Expanded on hover
+                    sidebarWidth = 240; 
                 } else {
-                    sidebarWidth = 70; // Collapsed normally
+                    sidebarWidth = 70; 
                 }
             } else {
                 if (isCollapsed) {
@@ -584,12 +564,10 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 sidebarWidth
             });
             
-            // Update content position
             content.style.marginLeft = sidebarWidth + 'px';
             content.style.width = `calc(100% - ${sidebarWidth}px)`;
             content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
             
-            // Update success/error message positions
             const successMsg = document.getElementById('successMsg');
             const errorMsg = document.getElementById('errorMsg');
             
@@ -602,11 +580,9 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 errorMsg.style.left = 'auto';
             }
             
-            // Force a reflow
             void content.offsetWidth;
         }
 
-        // Hook into global update function if it exists
         if (typeof window.updateAllPositions === 'function') {
             const originalUpdateAllPositions = window.updateAllPositions;
             window.updateAllPositions = function() {
@@ -615,13 +591,8 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             };
         }
 
-        // Make function globally available
         window.adjustContentPosition = adjustContentPosition;
-        // ============ END SIDEBAR INTEGRATION ============
-
-        // Notification settings functions
         function saveNotifications() {
-            // Get all toggle states
             const settings = {
                 emailNotif: document.getElementById('emailNotif').checked,
                 pushNotif: document.getElementById('pushNotif').checked,
@@ -635,16 +606,13 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             
             console.log('Saving notification settings:', settings);
             
-            // Save to localStorage
             localStorage.setItem('notificationSettings', JSON.stringify(settings));
             
-            // Show success message
             showSuccessMessage('Notification settings saved successfully!');
         }
 
         function resetNotifications() {
             if (confirm('Reset all notification settings to default?')) {
-                // Set all toggles to default
                 document.getElementById('emailNotif').checked = true;
                 document.getElementById('pushNotif').checked = true;
                 document.getElementById('smsNotif').checked = false;
@@ -662,14 +630,12 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             showInfoMessage('View all notifications - Coming soon!');
         }
 
-        // Load saved settings from localStorage
         function loadSavedSettings() {
             const saved = localStorage.getItem('notificationSettings');
             if (saved) {
                 try {
                     const settings = JSON.parse(saved);
                     
-                    // Apply saved settings
                     if (settings.emailNotif !== undefined) document.getElementById('emailNotif').checked = settings.emailNotif;
                     if (settings.pushNotif !== undefined) document.getElementById('pushNotif').checked = settings.pushNotif;
                     if (settings.smsNotif !== undefined) document.getElementById('smsNotif').checked = settings.smsNotif;
@@ -686,15 +652,12 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             }
         }
 
-        // Show success message
         function showSuccessMessage(msg) {
             const successDiv = document.getElementById('successMsg');
             const errorDiv = document.getElementById('errorMsg');
             
-            // Hide error first
             errorDiv.style.display = 'none';
             
-            // Update and show success
             successDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + msg;
             successDiv.style.display = 'block';
             
@@ -703,15 +666,12 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             }, 3000);
         }
 
-        // Show error message
         function showErrorMessage(msg) {
             const successDiv = document.getElementById('successMsg');
             const errorDiv = document.getElementById('errorMsg');
             
-            // Hide success first
             successDiv.style.display = 'none';
             
-            // Update and show error
             errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + msg;
             errorDiv.style.display = 'block';
             
@@ -720,29 +680,23 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             }, 3000);
         }
 
-        // Show info message
         function showInfoMessage(msg) {
-            showSuccessMessage(msg); // Reuse success style for info
+            showSuccessMessage(msg); 
         }
 
-        // Initialize toggles with logging
         document.querySelectorAll('.toggle-checkbox').forEach(toggle => {
             toggle.addEventListener('change', function() {
                 console.log(this.id + ' changed to: ' + this.checked);
             });
         });
 
-        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Load saved settings
             loadSavedSettings();
             
-            // Initial position adjustment for sidebar
             setTimeout(() => {
                 adjustContentPosition();
             }, 100);
             
-            // Check for sidebar state changes periodically
             setInterval(() => {
                 const sidebar = document.getElementById('sidebar');
                 if (sidebar) {

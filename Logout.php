@@ -1,13 +1,10 @@
 <?php
 session_start();
 
-// IMPORTANT: Save sidebar mode before destroying session
 $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'manual';
 
-// Clear PHP session but keep sidebar mode temporarily
 $_SESSION = array();
 
-// Destroy session cookies
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
     setcookie(session_name(), '', time() - 42000,
@@ -16,7 +13,6 @@ if (ini_get("session.use_cookies")) {
     );
 }
 
-// Store sidebar mode in a logout cookie (valid for 1 hour)
 setcookie('last_sidebar_mode', $sidebarMode, time() + 3600, '/');
 
 session_destroy();
@@ -120,31 +116,25 @@ session_destroy();
     </div>
 
     <script>
-        // IMPORTANT: Save sidebar mode BEFORE clearing storage
         const savedSidebarMode = localStorage.getItem('sidebarMode') || '<?php echo $sidebarMode; ?>';
         
-        // Save to a special key that survives logout
         localStorage.setItem('persistent_sidebar_mode', savedSidebarMode);
         
-        // Clear ALL storage EXCEPT our preserved sidebar mode
         const preservedMode = localStorage.getItem('persistent_sidebar_mode');
         
         localStorage.clear();
         sessionStorage.clear();
         
-        // Restore preserved sidebar mode
         if (preservedMode) {
             localStorage.setItem('persistent_sidebar_mode', preservedMode);
             localStorage.setItem('sidebarMode', preservedMode);
         }
         
-        // Clear cookies but preserve our custom cookie
         document.cookie.split(";").forEach(function(c) {
             if (c.trim().startsWith('last_sidebar_mode')) return;
             document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         });
         
-        // Firebase logout
         (async function() {
             try {
                 const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");

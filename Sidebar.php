@@ -1,5 +1,44 @@
 <?php
+ob_start();
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_uid']) && !isset($_COOKIE['user_uid'])) {
+    ob_clean();
+    
+    if (!headers_sent()) {
+        header('Location: Login.php');
+        exit;
+    } else {
+        echo '<!DOCTYPE html>
+              <html>
+              <head>
+                  <meta charset="UTF-8">
+                  <title>Redirecting...</title>
+                  <script>
+                      window.location.href = "Login.php";
+                  </script>
+              </head>
+              <body>
+                  <p>Redirecting to login page...</p>
+              </body>
+              </html>';
+        exit;
+    }
+}
+
+if (isset($_COOKIE['user_uid']) && !isset($_SESSION['user_uid'])) {
+    $_SESSION['user_uid'] = $_COOKIE['user_uid'];
+    $_SESSION['user_email'] = urldecode($_COOKIE['user_email']);
+    $_SESSION['user_role'] = 'Admin';
+}
+
 $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'manual';
+$isCollapsed = isset($_SESSION['sidebar_collapsed']) ? $_SESSION['sidebar_collapsed'] : false;
+
+include 'Firebase Config.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,7 +72,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       background-color: #f8fafc;
     }
 
-    /* Quick Redirect Overlay */
     .redirect-overlay {
       position: fixed;
       top: 0;
@@ -66,7 +104,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       100% { transform: rotate(360deg); }
     }
 
-    /* Sidebar Styles */
     .sidebar {
       width: 240px;
       background-color: var(--sidebar-bg);
@@ -83,12 +120,10 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       display: none;
     }
 
-    /* Collapsed Sidebar */
     .sidebar.collapsed {
       width: 70px;
     }
 
-    /* Auto-Hide Sidebar */
     .sidebar.auto-hide {
       width: 70px;
       transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -99,7 +134,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
     }
 
-    /* Sidebar Header */
     .sidebar-header {
       padding: 0px 20px 13px;
       border-bottom: 1px solid #e5e7eb;
@@ -156,7 +190,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       letter-spacing: 0.5px;
     }
 
-    /* Menu Toggle */
     .menu-toggle {
       cursor: pointer;
       color: #6b7280;
@@ -177,7 +210,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       background-color: var(--hover-bg);
     }
 
-    /* Auto-hide: Laging visible ang menu button */
     .sidebar.auto-hide .menu-toggle {
       display: flex !important;
     }
@@ -186,7 +218,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       display: flex;
     }
 
-    /* User Section */
     .user-section {
       padding: 0 20px 20px 20px;
       margin-bottom: 20px;
@@ -256,7 +287,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       border-radius: 50%;
     }
 
-    /* Navigation Menu */
     .sidebar ul {
       list-style: none;
       padding-left: 0;
@@ -338,7 +368,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       animation: fadeIn 0.3s ease 0.2s both;
     }
 
-    /* Logout Button */
     .logout-container {
       position: absolute;
       bottom: 30px;
@@ -398,7 +427,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       box-shadow: 0 4px 8px rgba(220, 38, 38, 0.1);
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
       .sidebar {
         width: 70px;
@@ -432,7 +460,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         padding: 12px;
       }
       
-      /* Auto-hide menu button sa mobile */
       .sidebar.auto-hide .menu-toggle {
         display: flex !important;
       }
@@ -462,22 +489,16 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
   </style>
 </head>
 <body>
-  <!-- Quick Redirect Overlay -->
   <div class="redirect-overlay" id="redirectOverlay">
     <div class="redirect-spinner"></div>
     <h2>Checking Access...</h2>
     <p>Please wait while we verify your credentials.</p>
   </div>
 
-  <!-- Sidebar -->
   <div class="sidebar <?php 
       if ($sidebarMode === 'auto-hide') echo 'auto-hide';
-      elseif ($sidebarMode === 'manual') {
-          $isCollapsed = isset($_SESSION['sidebar_collapsed']) ? $_SESSION['sidebar_collapsed'] : false;
-          if ($isCollapsed) echo 'collapsed';
-      }
+      elseif ($sidebarMode === 'manual' && $isCollapsed) echo 'collapsed';
   ?>" id="sidebar">
-    <!-- Header Area with Admin Panel and Toggle -->
     <div class="sidebar-header">
       <div class="admin-header">
         <div class="admin-icon">
@@ -485,18 +506,16 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         </div>
         <div class="admin-title">Admin Panel</div>
       </div>
-      <!-- MENU BUTTON: Laging visible ngayon -->
       <span class="material-symbols-outlined menu-toggle" onclick="window.toggleSidebar()" id="menuButton">menu</span>
     </div>
 
-    <!-- User Section -->
     <div class="user-section">
       <div class="user-info">
         <div class="user-icon">
           <i class="fas fa-user"></i>
         </div>
         <div class="user-details">
-          <div class="user-email" id="userEmail">admin@serviceco.com</div>
+          <div class="user-email" id="userEmail"><?php echo htmlspecialchars($_SESSION['user_email'] ?? 'admin@serviceco.com'); ?></div>
           <div class="user-status">
             <div class="status-dot"></div>
             <span>Online</span>
@@ -505,7 +524,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       </div>
     </div>
     
-    <!-- Navigation Menu -->
     <ul>
       <li class="<?= (basename($_SERVER['PHP_SELF']) == 'Dashboard.php') ? 'active' : ''; ?>">
         <a href="Dashboard.php">
@@ -533,7 +551,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
       </li>
     </ul>
 
-    <!-- Logout Button -->
     <div class="logout-container">
       <button onclick="logout()" class="logout-btn">
         <span class="material-symbols-outlined">logout</span>
@@ -543,14 +560,12 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
   </div>
 
   <script>
-    // GLOBAL STATE
     window.sidebarState = {
         mode: '<?php echo $sidebarMode; ?>',
-        isCollapsed: <?php echo (isset($_SESSION['sidebar_collapsed']) && $_SESSION['sidebar_collapsed']) ? 'true' : 'false'; ?>,
+        isCollapsed: <?php echo $isCollapsed ? 'true' : 'false'; ?>,
         isAutoHide: <?php echo ($sidebarMode === 'auto-hide') ? 'true' : 'false'; ?>
     };
     
-    // FAST AUTH CHECK
     document.addEventListener('DOMContentLoaded', function() {
         const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
         const userEmail = localStorage.getItem('user_email');
@@ -563,17 +578,13 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             return;
         }
         
-        // Logged in - show sidebar immediately
         document.getElementById('redirectOverlay').style.display = 'none';
         document.getElementById('sidebar').style.display = 'block';
         
-        // Show user info
         document.getElementById('userEmail').textContent = userEmail;
         
-        // Initialize sidebar
         initializeSidebar();
         
-        // Force update on load
         setTimeout(() => {
             window.updateAllPositions();
         }, 100);
@@ -583,25 +594,14 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         const sidebar = document.getElementById("sidebar");
         const menuButton = document.getElementById("menuButton");
         
-        // Check current mode
         const isAutoHide = sidebar.classList.contains('auto-hide');
         const isManual = !isAutoHide;
         
-        // Sidebar toggle function - FIXED VERSION
         window.toggleSidebar = function() {
-            console.log("Toggle sidebar clicked. Current mode:", window.sidebarState.mode);
-            
-            // Auto-hide mode: dapat hindi mag-toggle, pero mag-e-expand lang sa hover
             if (window.sidebarState.mode === 'auto-hide') {
-                console.log("Auto-hide mode: Sidebar expands on hover only, not on click");
-                
-                // Para sa auto-hide, hindi dapat mag-toggle sa click
-                // Pero kung gusto mo pa ring mag-toggle kahit auto-hide, alisin ang return statement
-                // For now, disable toggling in auto-hide mode
                 return;
             }
             
-            // Manual mode: toggle collapsed state
             const wasCollapsed = sidebar.classList.contains("collapsed");
             
             if (wasCollapsed) {
@@ -610,15 +610,12 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 sidebar.classList.add("collapsed");
             }
             
-            // Update global state
             window.sidebarState.isCollapsed = !wasCollapsed;
             window.sidebarState.isAutoHide = false;
             window.sidebarState.mode = 'manual';
             
-            // Save to session storage
             localStorage.setItem('sidebarCollapsed', !wasCollapsed);
             
-            // Dispatch event for navbar and content to listen to
             const event = new CustomEvent('sidebarToggled', {
                 detail: {
                     collapsed: !wasCollapsed,
@@ -627,12 +624,10 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             });
             document.dispatchEvent(event);
             
-            // Mobile handling
             if (window.innerWidth <= 576) {
                 sidebar.classList.toggle("active");
             }
             
-            // AJAX call to save state
             const isCollapsed = sidebar.classList.contains('collapsed');
             
             fetch('save_sidebar_state.php', {
@@ -643,10 +638,8 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 body: 'collapsed=' + isCollapsed
             }).catch(error => console.error('Error saving sidebar state:', error));
             
-            // Update all positions
             window.updateAllPositions();
             
-            // Force update content positions
             setTimeout(() => {
                 if (typeof window.adjustContentPosition === 'function') {
                     window.adjustContentPosition();
@@ -655,7 +648,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             }, 50);
         };
         
-        // Logout function
         window.logout = function() {
             localStorage.setItem('just_logged_out', 'true');
             localStorage.clear();
@@ -663,7 +655,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             window.location.href = 'Logout.php';
         };
         
-        // Active menu highlighting
         const currentPage = window.location.pathname.split('/').pop();
         const sidebarLinks = document.querySelectorAll('.sidebar ul li a');
         
@@ -674,22 +665,18 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             }
         });
         
-        // Auto-hide hover effects
         if (isAutoHide) {
-            // Make sure menu button is visible in auto-hide mode
             if (menuButton) {
                 menuButton.style.display = 'flex';
             }
             
             sidebar.addEventListener('mouseenter', function() {
                 if (window.sidebarState.mode === 'auto-hide') {
-                    // Dispatch event para malaman ng navbar/content na nag-expand ang sidebar
                     const event = new CustomEvent('sidebarAutoHide', {
                         detail: { expanded: true }
                     });
                     document.dispatchEvent(event);
                     
-                    // Update positions
                     setTimeout(() => {
                         window.updateAllPositions();
                         if (typeof window.adjustContentPosition === 'function') {
@@ -701,13 +688,11 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             
             sidebar.addEventListener('mouseleave', function() {
                 if (window.sidebarState.mode === 'auto-hide') {
-                    // Dispatch event para malaman ng navbar/content na nag-collapse ang sidebar
                     const event = new CustomEvent('sidebarAutoHide', {
                         detail: { expanded: false }
                     });
                     document.dispatchEvent(event);
                     
-                    // Update positions
                     setTimeout(() => {
                         window.updateAllPositions();
                         if (typeof window.adjustContentPosition === 'function') {
@@ -718,35 +703,26 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             });
         }
         
-        // GLOBAL FUNCTION to change sidebar mode
         window.changeSidebarMode = function(newMode) {
             const sidebar = document.getElementById('sidebar');
             const menuButton = document.querySelector('.menu-toggle');
             
-            console.log('Changing sidebar mode to:', newMode);
-            
-            // Remove current mode classes
             sidebar.classList.remove('auto-hide', 'collapsed');
             
             if (newMode === 'auto-hide') {
-                // Auto-hide mode
                 sidebar.classList.add('auto-hide');
                 
-                // Show menu button in auto-hide mode
                 if (menuButton) {
                     menuButton.style.display = 'flex';
                 }
                 
-                // Update global state
                 window.sidebarState.mode = 'auto-hide';
                 window.sidebarState.isAutoHide = true;
                 window.sidebarState.isCollapsed = false;
                 
-                // Remove hover events first
                 sidebar.removeEventListener('mouseenter', arguments.callee);
                 sidebar.removeEventListener('mouseleave', arguments.callee);
                 
-                // Add hover events for auto-hide
                 sidebar.addEventListener('mouseenter', function() {
                     if (window.sidebarState.mode === 'auto-hide') {
                         const event = new CustomEvent('sidebarAutoHide', {
@@ -780,11 +756,9 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 });
                 
             } else {
-                // Manual mode
                 window.sidebarState.mode = 'manual';
                 window.sidebarState.isAutoHide = false;
                 
-                // Check if it should start collapsed
                 const shouldCollapse = localStorage.getItem('sidebarCollapsed') === 'true';
                 if (shouldCollapse) {
                     sidebar.classList.add('collapsed');
@@ -793,17 +767,14 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                     window.sidebarState.isCollapsed = false;
                 }
                 
-                // Show menu button
                 if (menuButton) {
                     menuButton.style.display = 'flex';
                 }
                 
-                // Remove auto-hide hover events
                 sidebar.removeEventListener('mouseenter', arguments.callee);
                 sidebar.removeEventListener('mouseleave', arguments.callee);
             }
             
-            // Dispatch mode changed event
             const event = new CustomEvent('sidebarModeChanged', {
                 detail: { 
                     mode: newMode,
@@ -812,21 +783,17 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             });
             document.dispatchEvent(event);
             
-            // Update positions
             window.updateAllPositions();
             
-            // Force content adjustment
             setTimeout(() => {
                 if (typeof window.adjustContentPosition === 'function') {
                     window.adjustContentPosition();
                 }
             }, 100);
             
-            // Save to localStorage
             localStorage.setItem('sidebarMode', newMode);
         };
         
-        // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
             const menuButton = document.getElementById('menuButton');
@@ -840,7 +807,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             }
         });
         
-        // Window resize handler
         window.addEventListener('resize', function() {
             const sidebar = document.getElementById('sidebar');
             
@@ -851,7 +817,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             window.updateAllPositions();
         });
         
-        // Initialize based on current mode
         if (window.sidebarState.mode === 'auto-hide') {
             window.changeSidebarMode('auto-hide');
         } else {
@@ -859,7 +824,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         }
     }
     
-    // POSITION UPDATE FUNCTION
     window.updateAllPositions = function() {
         const sidebar = document.getElementById("sidebar");
         
@@ -869,14 +833,13 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         const isCollapsed = sidebar.classList.contains('collapsed');
         const isHovered = sidebar.matches(':hover') && isAutoHide;
         
-        // Calculate sidebar width
-        let sidebarWidth = 240; // Default expanded
+        let sidebarWidth = 240;
         
         if (isAutoHide) {
             if (isHovered) {
-                sidebarWidth = 240; // Hovered = expanded
+                sidebarWidth = 240;
             } else {
-                sidebarWidth = 70; // Not hovered = collapsed
+                sidebarWidth = 70;
             }
         } else {
             if (isCollapsed) {
@@ -886,14 +849,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             }
         }
         
-        console.log('Sidebar position update:', {
-            mode: isAutoHide ? 'auto-hide' : 'manual',
-            collapsed: isCollapsed,
-            hovered: isHovered,
-            width: sidebarWidth
-        });
-        
-        // Update all content elements
         const contentElements = document.querySelectorAll(".dashboard-content, .account-content, .user-content, .app-content, .report-content");
         contentElements.forEach(el => {
             el.style.marginLeft = sidebarWidth + 'px';
@@ -901,12 +856,12 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             el.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
         });
         
-        // Update navbar
         const navbar = document.getElementById("navbar");
         if (navbar) {
             navbar.style.left = sidebarWidth + 'px';
         }
     };
-</script>
+  </script>
 </body>
 </html>
+<?php ob_end_flush(); ?>

@@ -1,8 +1,6 @@
 <?php
-// RecentActivities.php
 session_start();
 
-// Get current sidebar mode from session
 $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'manual';
 ?>
 <!DOCTYPE html>
@@ -27,7 +25,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             overflow-x: hidden;
         }
 
-        /* Recent Activities Content */
         .main-content {
             margin-top: 70px;
             padding: 30px;
@@ -43,13 +40,11 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             width: calc(100% - 70px);
         }
 
-        /* IMPORTANT: FIXED - Direct sibling selector for auto-hide hover */
         .sidebar.auto-hide:hover ~ .main-content {
             margin-left: 240px !important;
             width: calc(100% - 240px) !important;
         }
 
-        /* Header Section */
         .page-header {
             margin-bottom: 30px;
         }
@@ -67,7 +62,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             font-weight: 400;
         }
 
-        /* Controls Section */
         .controls-section {
             background-color: white;
             padding: 25px;
@@ -120,7 +114,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             flex-wrap: wrap;
         }
 
-        /* Filter Buttons */
         .btn-filter {
             padding: 12px 24px;
             border-radius: 10px;
@@ -152,7 +145,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             border-color: #0da271;
         }
 
-        /* Main Content Card */
         .content-card {
             background-color: white;
             border-radius: 12px;
@@ -202,7 +194,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             background-color: #f0fdf4;
         }
 
-        /* Activities Table */
         .activities-table-container {
             overflow-x: auto;
             width: 100%;
@@ -320,7 +311,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             border-radius: 50%;
         }
 
-        /* Pagination */
         .pagination-container {
             background-color: white;
             padding: 20px 30px;
@@ -386,7 +376,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             padding: 0 8px;
         }
 
-        /* Footer */
         .footer {
             text-align: center;
             padding: 25px;
@@ -396,7 +385,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             border-top: 1px solid #f3f4f6;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .main-content {
                 margin-left: 70px;
@@ -477,7 +465,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             }
         }
 
-        /* Smooth sidebar transition */
         .main-content, .sidebar, .navbar {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -487,10 +474,8 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
     <?php include 'Sidebar.php'; ?>
     <?php include 'NavigationBar.php'; ?>
 
-    <!-- Main Content -->
     <div class="main-content">
         <?php
-        // Simulated data
         $recentActivities = [
             [
                 'name' => 'Severino Manalo',
@@ -599,7 +584,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             ]
         ];
 
-        // Pagination simulation
         $currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $itemsPerPage = 10;
         $totalItems = count($recentActivities);
@@ -608,13 +592,11 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         $paginatedActivities = array_slice($recentActivities, $startIndex, $itemsPerPage);
         ?>
         
-        <!-- Page Header -->
         <div class="page-header">
             <h1 class="page-title">Recent Activities</h1>
             <p class="page-subtitle">View all system activities and monitor user actions</p>
         </div>
 
-        <!-- Controls Section -->
         <div class="controls-section">
             <div class="search-container">
                 <i class="fas fa-search search-icon"></i>
@@ -637,7 +619,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             </div>
         </div>
 
-        <!-- Main Content Card -->
         <div class="content-card">
             <div class="card-header">
                 <h2 class="card-title">Activity Log</h2>
@@ -701,7 +682,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             </div>
         </div>
 
-        <!-- Pagination -->
         <div class="pagination-container">
             <div class="pagination-info">
                 Showing <?php echo $startIndex + 1; ?> to <?php echo min($startIndex + $itemsPerPage, $totalItems); ?> of <?php echo $totalItems; ?> entries
@@ -713,7 +693,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 </a>
                 
                 <?php 
-                // Display first page
                 if ($currentPage > 3): ?>
                     <a href="?page=1" class="page-link <?php echo 1 == $currentPage ? 'active' : ''; ?>">
                         1
@@ -724,7 +703,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 <?php endif; ?>
                 
                 <?php 
-                // Display pages around current page
                 for ($i = max(1, $currentPage - 2); $i <= min($totalPages, $currentPage + 2); $i++): ?>
                     <a href="?page=<?php echo $i; ?>" class="page-link <?php echo $i == $currentPage ? 'active' : ''; ?>">
                         <?php echo $i; ?>
@@ -732,7 +710,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 <?php endfor; ?>
                 
                 <?php 
-                // Display last page
                 if ($currentPage < $totalPages - 2): ?>
                     <?php if ($currentPage < $totalPages - 3): ?>
                         <span class="ellipsis">...</span>
@@ -748,47 +725,38 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             </div>
         </div>
 
-        <!-- Footer -->
         <div class="footer">
             <p>Tricycle Booking System &copy; <?php echo date('Y'); ?>. All rights reserved.</p>
         </div>
     </div>
 
     <script>
-        // Store current sidebar mode
         let currentSidebarMode = '<?php echo $sidebarMode; ?>';
         
         document.addEventListener('DOMContentLoaded', function() {
-            // Listen for sidebar events from Sidebar.php
             document.addEventListener('sidebarModeChanged', function(e) {
                 console.log('Recent Activities: Sidebar mode changed to:', e.detail.mode);
                 currentSidebarMode = e.detail.mode;
                 adjustContentPosition();
             });
             
-            // Listen for sidebar auto-hide hover events
             document.addEventListener('sidebarAutoHide', function(e) {
                 console.log('Recent Activities: Sidebar auto-hide hover:', e.detail.expanded);
                 
-                // Force immediate position adjustment on hover
                 setTimeout(() => {
                     adjustContentPosition();
                 }, 10);
             });
             
-            // Listen for sidebar toggle events
             document.addEventListener('sidebarToggled', function(e) {
                 console.log('Recent Activities: Sidebar manually toggled:', e.detail.collapsed);
                 
-                // Force immediate position adjustment
                 setTimeout(() => {
                     adjustContentPosition();
                 }, 10);
             });
             
-            // Listen for global sidebar position updates
             if (typeof window.updateAllPositions === 'function') {
-                // Hook into the global update function
                 const originalUpdateAllPositions = window.updateAllPositions;
                 window.updateAllPositions = function() {
                     originalUpdateAllPositions();
@@ -796,18 +764,15 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 };
             }
             
-            // Initial position adjustment
             setTimeout(() => {
                 adjustContentPosition();
             }, 100);
             
-            // Set up periodic check for sidebar changes
             setInterval(() => {
                 const sidebar = document.getElementById('sidebar');
                 if (sidebar) {
                     const currentClasses = sidebar.className;
                     
-                    // Check if classes have changed
                     if (window.lastSidebarClasses !== currentClasses) {
                         window.lastSidebarClasses = currentClasses;
                         adjustContentPosition();
@@ -815,15 +780,12 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 }
             }, 100);
             
-            // Filter buttons functionality
             document.querySelectorAll('.btn-filter[data-filter]').forEach(button => {
                 button.addEventListener('click', function() {
-                    // Remove active class from all filter buttons
                     document.querySelectorAll('.btn-filter[data-filter]').forEach(btn => {
                         btn.classList.remove('active');
                     });
                     
-                    // Add active class to clicked button
                     this.classList.add('active');
                     
                     const filter = this.getAttribute('data-filter');
@@ -843,7 +805,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 });
             });
 
-            // Search functionality
             const searchBox = document.querySelector('.search-box');
             searchBox.addEventListener('input', function(e) {
                 const searchTerm = e.target.value.toLowerCase();
@@ -864,7 +825,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             });
         });
 
-        // FUNCTION: Adjust content position based on sidebar state
         function adjustContentPosition() {
             const sidebar = document.getElementById('sidebar');
             const content = document.querySelector('.main-content');
@@ -875,14 +835,13 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             const isCollapsed = sidebar.classList.contains('collapsed');
             const isHovered = sidebar.matches(':hover') && isAutoHide;
             
-            // Calculate sidebar width
             let sidebarWidth;
             
             if (isAutoHide) {
                 if (isHovered) {
-                    sidebarWidth = 240; // Expanded on hover
+                    sidebarWidth = 240; 
                 } else {
-                    sidebarWidth = 70; // Collapsed normally
+                    sidebarWidth = 70; 
                 }
             } else {
                 if (isCollapsed) {
@@ -899,25 +858,20 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 sidebarWidth
             });
             
-            // Update content position immediately
             content.style.marginLeft = sidebarWidth + 'px';
             content.style.width = `calc(100% - ${sidebarWidth}px)`;
             content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
             
-            // Also update navbar if exists
             const navbar = document.getElementById('navbar');
             if (navbar) {
                 navbar.style.left = sidebarWidth + 'px';
             }
             
-            // Force a reflow to ensure CSS updates immediately
             void content.offsetWidth;
         }
         
-        // Make the function available globally
         window.adjustContentPosition = adjustContentPosition;
 
-        // Export button functionality
         function exportActivities() {
             let csv = [];
             let rows = document.querySelectorAll("#activitiesTable tr");
@@ -931,7 +885,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 let row = [], cols = rows[i].querySelectorAll("td, th");
 
                 for (let j = 0; j < cols.length; j++) {
-                    // Clean the text and add quotes
                     let text = cols[j].innerText.replace(/"/g, '""');
                     row.push('"' + text + '"');
                 }
@@ -939,16 +892,14 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
                 csv.push(row.join(","));
             }
 
-            // Add header for metadata
             const header = [
                 '"Tricycle Booking System - Recent Activities Export"',
                 `"Export Date: ${new Date().toLocaleDateString()}"`,
                 `"Export Time: ${new Date().toLocaleTimeString()}"`,
-                '""' // Empty row
+                '""'
             ];
             csv.unshift(...header);
 
-            // Create and download CSV file
             let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
             let downloadLink = document.createElement("a");
 
@@ -960,16 +911,13 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             downloadLink.click();
             document.body.removeChild(downloadLink);
             
-            // Show success message
             alert('Activities exported successfully!');
         }
 
-        // View details function
         function viewDetails(userName) {
             alert(`Viewing details for: ${userName}`);
         }
 
-        // Update pagination info
         function updatePaginationInfo(visibleCount = null) {
             const infoElement = document.querySelector('.pagination-info');
             if (!infoElement) return;

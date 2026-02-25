@@ -1,16 +1,18 @@
 <?php
-session_start();
 
-// Check for preserved sidebar mode from cookie
-$preservedMode = 'manual'; // Default
+$preservedMode = 'manual';
 
 if (isset($_COOKIE['last_sidebar_mode']) && in_array($_COOKIE['last_sidebar_mode'], ['manual', 'auto-hide'])) {
     $preservedMode = $_COOKIE['last_sidebar_mode'];
     setcookie('last_sidebar_mode', $preservedMode, time() + 3600, '/');
 }
 
-// Store in session for later use
 $_SESSION['sidebar_mode'] = $preservedMode;
+
+if (isset($_SESSION['user_uid'])) {
+    header('Location: Dashboard.php');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -315,11 +317,19 @@ $_SESSION['sidebar_mode'] = $preservedMode;
             margin-top: 20px;
             font-size: 0.95rem;
             transition: color 0.3s ease;
+            cursor: pointer;
         }
 
         .forgot-password:hover {
             color: #2c642c;
             text-decoration: underline;
+        }
+
+        .forgot-password.disabled {
+            color: #9ca3af;
+            pointer-events: none;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
         .error-message {
@@ -342,6 +352,22 @@ $_SESSION['sidebar_mode'] = $preservedMode;
             display: none;
             text-align: center;
             font-size: 0.95rem;
+        }
+
+        .warning-message {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        .timer-text {
+            font-weight: 600;
+            color: #dc2626;
         }
 
         @keyframes fadeIn {
@@ -434,6 +460,7 @@ $_SESSION['sidebar_mode'] = $preservedMode;
 
                 <div id="errorMessage" class="error-message"></div>
                 <div id="successMessage" class="success-message"></div>
+                <div id="warningMessage" class="warning-message"></div>
 
                 <form id="loginForm" class="login-form">
                     <div class="form-group">
@@ -460,7 +487,7 @@ $_SESSION['sidebar_mode'] = $preservedMode;
                         Sign In
                     </button>
 
-                    <a href="#" id="forgotPass" class="forgot-password">
+                    <a id="forgotPass" class="forgot-password">
                         <i class="fas fa-key"></i> Forgot Password?
                     </a>
                 </form>
@@ -469,7 +496,6 @@ $_SESSION['sidebar_mode'] = $preservedMode;
     </div>
 
     <script>
-        // Silent sidebar mode restoration - NO VISUAL INDICATOR
         const preservedMode = '<?php echo $preservedMode; ?>';
         localStorage.setItem('sidebarMode', preservedMode);
         localStorage.setItem('persistent_sidebar_mode', preservedMode);
@@ -489,6 +515,65 @@ $_SESSION['sidebar_mode'] = $preservedMode;
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        const COOLDOWN_MINUTES = 3;
+        const COOLDOWN_MS = COOLDOWN_MINUTES * 60 * 1000;
+        let cooldownTimer = null;
+
+        function checkCooldown() {
+            const lastResetTime = localStorage.getItem('lastPasswordResetTime');
+            const forgotPassLink = document.getElementById('forgotPass');
+            const warningMessage = document.getElementById('warningMessage');
+            
+            if (lastResetTime) {
+                const elapsed = Date.now() - parseInt(lastResetTime);
+                const remaining = COOLDOWN_MS - elapsed;
+                
+                if (remaining > 0) {
+                    startCooldown(remaining);
+                    return true;
+                } else {
+                    localStorage.removeItem('lastPasswordResetTime');
+                }
+            }
+            
+            forgotPassLink.classList.remove('disabled');
+            warningMessage.style.display = 'none';
+            return false;
+        }
+
+        function startCooldown(remainingTime) {
+            const forgotPassLink = document.getElementById('forgotPass');
+            const warningMessage = document.getElementById('warningMessage');
+            
+            forgotPassLink.classList.add('disabled');
+            
+            if (cooldownTimer) {
+                clearInterval(cooldownTimer);
+            }
+            
+            const updateTimer = () => {
+                const currentRemaining = parseInt(localStorage.getItem('passwordResetRemaining') || remainingTime);
+                const mins = Math.floor(currentRemaining / 60000);
+                const secs = Math.floor((currentRemaining % 60000) / 1000);
+                
+                warningMessage.innerHTML = `<i class="fas fa-clock"></i> Please wait ${mins}:${secs.toString().padStart(2, '0')} minutes before requesting another password reset.`;
+                warningMessage.style.display = 'block';
+                
+                if (currentRemaining <= 0) {
+                    clearInterval(cooldownTimer);
+                    localStorage.removeItem('lastPasswordResetTime');
+                    localStorage.removeItem('passwordResetRemaining');
+                    forgotPassLink.classList.remove('disabled');
+                    warningMessage.style.display = 'none';
+                }
+                
+                localStorage.setItem('passwordResetRemaining', currentRemaining - 1000);
+            };
+            
+            updateTimer();
+            cooldownTimer = setInterval(updateTimer, 1000);
+        }
 
         document.getElementById('passwordToggle').addEventListener('click', function() {
             const passwordInput = document.getElementById('password');
@@ -516,6 +601,7 @@ $_SESSION['sidebar_mode'] = $preservedMode;
             errorMessage.style.display = "none";
             errorMessage.textContent = "";
             document.getElementById("successMessage").style.display = "none";
+            document.getElementById("warningMessage").style.display = "none";
 
             const originalText = loginButton.innerHTML;
             loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
@@ -528,11 +614,18 @@ $_SESSION['sidebar_mode'] = $preservedMode;
                 const docSnap = await getDoc(doc(db, "users", user.uid));
 
                 if (docSnap.exists() && docSnap.data().role === "Admin") {
-                    // Silent sidebar mode restoration
                     const sidebarMode = localStorage.getItem('persistent_sidebar_mode') || 
                                        localStorage.getItem('sidebarMode') || 
                                        preservedMode || 
                                        'manual';
+                    
+                    const response = await fetch('Dashboard.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'set_session=1&uid=' + user.uid + '&email=' + encodeURIComponent(user.email)
+                    });
                     
                     localStorage.setItem('user_uid', user.uid);
                     localStorage.setItem('user_email', user.email);
@@ -540,10 +633,11 @@ $_SESSION['sidebar_mode'] = $preservedMode;
                     localStorage.setItem('is_logged_in', 'true');
                     localStorage.setItem('login_timestamp', Date.now().toString());
                     
-                    // Restore sidebar mode silently
                     localStorage.setItem('sidebarMode', sidebarMode);
                     localStorage.setItem('persistent_sidebar_mode', sidebarMode);
                     document.cookie = `last_sidebar_mode=${sidebarMode}; path=/; max-age=3600`;
+                    document.cookie = `user_uid=${user.uid}; path=/; max-age=3600`;
+                    document.cookie = `user_email=${encodeURIComponent(user.email)}; path=/; max-age=3600`;
                     
                     localStorage.removeItem('just_logged_out');
                     
@@ -586,12 +680,25 @@ $_SESSION['sidebar_mode'] = $preservedMode;
         document.getElementById("forgotPass").addEventListener("click", async (e) => {
             e.preventDefault();
 
+            const lastResetTime = localStorage.getItem('lastPasswordResetTime');
+            if (lastResetTime) {
+                const elapsed = Date.now() - parseInt(lastResetTime);
+                if (elapsed < COOLDOWN_MS) {
+                    const remaining = COOLDOWN_MS - elapsed;
+                    startCooldown(remaining);
+                    return;
+                }
+            }
+
             const email = document.getElementById("email").value;
             const errorMessage = document.getElementById("errorMessage");
             const successMessage = document.getElementById("successMessage");
+            const warningMessage = document.getElementById("warningMessage");
+            const forgotPassLink = document.getElementById("forgotPass");
 
             errorMessage.style.display = "none";
             successMessage.style.display = "none";
+            warningMessage.style.display = "none";
 
             if (!email) {
                 errorMessage.textContent = "Please enter your email address first";
@@ -599,13 +706,28 @@ $_SESSION['sidebar_mode'] = $preservedMode;
                 return;
             }
 
+            forgotPassLink.classList.add('disabled');
+            const originalText = forgotPassLink.innerHTML;
+            forgotPassLink.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
             try {
                 await sendPasswordResetEmail(auth, email);
+                
+                const resetTime = Date.now();
+                localStorage.setItem('lastPasswordResetTime', resetTime);
+                localStorage.setItem('passwordResetRemaining', COOLDOWN_MS);
+                
                 successMessage.textContent = "Password reset email sent! Check your inbox.";
                 successMessage.style.display = "block";
+                
+                startCooldown(COOLDOWN_MS);
+                
             } catch (error) {
                 errorMessage.textContent = "Failed to send reset email. Make sure email is correct.";
                 errorMessage.style.display = "block";
+                forgotPassLink.classList.remove('disabled');
+            } finally {
+                forgotPassLink.innerHTML = originalText;
             }
         });
 
@@ -624,6 +746,8 @@ $_SESSION['sidebar_mode'] = $preservedMode;
                     parent.innerHTML = '<i class="fas fa-taxi" style="font-size: 40px; color: #347433;"></i>';
                 };
             }
+            
+            checkCooldown();
         });
     </script>
 </body>

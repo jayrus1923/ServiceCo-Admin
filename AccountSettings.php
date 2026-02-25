@@ -1,16 +1,32 @@
 <?php
-// AccountSettings.php - WITH REAL-TIME AUTO-HIDE
 session_start();
+date_default_timezone_set('Asia/Manila');
 
-// Handle sidebar mode saving
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sidebar_mode'])) {
     $_SESSION['sidebar_mode'] = $_POST['sidebar_mode'];
     echo json_encode(['success' => true, 'message' => 'Sidebar mode saved']);
     exit;
 }
 
-// Get current sidebar mode
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_display_preferences'])) {
+    $_SESSION['display_preferences'] = [
+        'date_format' => $_POST['date_format'] ?? 'mm/dd/yyyy',
+        'time_format' => $_POST['time_format'] ?? '12'
+    ];
+    echo json_encode(['success' => true, 'message' => 'Display preferences saved']);
+    exit;
+}
+
 $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'manual';
+
+$displayPrefs = isset($_SESSION['display_preferences']) ? $_SESSION['display_preferences'] : [];
+$dateFormat = isset($displayPrefs['date_format']) ? $displayPrefs['date_format'] : 'mm/dd/yyyy';
+$timeFormat = isset($displayPrefs['time_format']) ? $displayPrefs['time_format'] : '12';
+
+$now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+$currentDate = $now->format('m/d/Y');
+$currentTime12 = $now->format('h:i A');
+$currentTime24 = $now->format('H:i');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -46,10 +62,8 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         .sidebar.auto-hide ~ .account-content {
             margin-left: 70px;
             width: calc(100% - 70px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* IMPORTANT: FIXED - Direct sibling selector for auto-hide hover */
         .sidebar.auto-hide:hover ~ .account-content {
             margin-left: 240px !important;
             width: calc(100% - 240px) !important;
@@ -86,7 +100,6 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             border-bottom: 1px solid #eee;
         }
 
-        /* Sidebar Settings */
         .sidebar-settings {
             margin-bottom: 20px;
         }
@@ -128,11 +141,11 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         }
 
         .sidebar-mode-btn.active {
-            background-color: #10b981;
+            background-color: #347433;
             color: white;
-            border-color: #10b981;
+            border-color: #347433;
             transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 4px 6px rgba(52, 116, 51, 0.2);
         }
 
         .sidebar-hover-info {
@@ -142,19 +155,18 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             padding: 12px;
             background-color: #f8f9fa;
             border-radius: 6px;
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #347433;
             line-height: 1.5;
         }
 
         .sidebar-hover-info i {
             margin-right: 8px;
-            color: #10b981;
+            color: #347433;
         }
 
-        /* Success Message */
         .success-message {
             background-color: #d1fae5;
-            color: #065f46;
+            color: #347433;
             padding: 12px 16px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -182,7 +194,7 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         }
 
         .success-icon {
-            color: #10b981;
+            color: #347433;
             font-size: 18px;
         }
 
@@ -211,68 +223,8 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         .form-group select:focus,
         .form-group input:focus {
             outline: none;
-            border-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-        }
-
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding: 12px 15px;
-            background-color: #f9fafb;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
-        }
-
-        .toggle-label {
-            font-size: 14px;
-            color: #333;
-            font-weight: 500;
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 44px;
-            height: 24px;
-        }
-
-        .toggle-checkbox {
-            display: none;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            border-radius: 24px;
-            transition: .3s;
-        }
-
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            border-radius: 50%;
-            transition: .3s;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .toggle-checkbox:checked + .toggle-slider {
-            background-color: #10b981;
-        }
-
-        .toggle-checkbox:checked + .toggle-slider:before {
-            transform: translateX(20px);
+            border-color: #347433;
+            box-shadow: 0 0 0 3px rgba(52, 116, 51, 0.1);
         }
 
         .button-group {
@@ -295,24 +247,49 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
         }
 
         .btn-primary {
-            background: #10b981;
+            background: #347433;
             color: white;
         }
 
         .btn-primary:hover {
-            background: #0da271;
+            background: #2d6a2d;
             transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 4px 6px rgba(52, 116, 51, 0.2);
         }
 
-        .btn-secondary {
-            background-color: #e5e7eb;
-            color: #4b5563;
+        .preview-box {
+            background-color: #f0fdf4;
+            border: 1px solid #347433;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 13px;
+            color: #347433;
+        }
+        
+        .preview-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 0;
+        }
+        
+        .preview-label {
+            font-weight: 600;
+            min-width: 60px;
+            color: #333;
+        }
+        
+        .preview-value {
+            font-weight: 500;
+            color: #347433;
         }
 
-        .btn-secondary:hover {
-            background-color: #d1d5db;
-            transform: translateY(-1px);
+        .current-time {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            text-align: right;
         }
 
         @media (max-width: 768px) {
@@ -337,18 +314,17 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
     <?php include 'NavigationBar.php'; ?>
 
     <div class="account-content">
-        <!-- Success Message -->
         <div id="successMessage" class="success-message">
             <i class="fas fa-check-circle success-icon"></i>
-            <span>Sidebar mode saved successfully! Changes applied immediately.</span>
+            <span id="successMessageText">Settings saved successfully!</span>
         </div>
 
         <div class="welcome-section">
             <h1 class="welcome-title">Account Settings</h1>
             <p style="color: #666; font-size: 14px;">Manage your account preferences</p>
+            <div class="current-time">Current Philippine Time: <?php echo $currentTime12; ?></div>
         </div>
 
-        <!-- Sidebar Settings Section -->
         <div class="settings-card">
             <h3>Sidebar Settings</h3>
             <div class="sidebar-settings">
@@ -374,260 +350,165 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             
             <div class="form-group">
                 <label for="dateFormat">Date Format</label>
-                <select id="dateFormat">
-                    <option value="mm/dd/yyyy">MM/DD/YYYY</option>
-                    <option value="dd/mm/yyyy">DD/MM/YYYY</option>
-                    <option value="yyyy-mm-dd">YYYY-MM-DD</option>
+                <select id="dateFormat" onchange="updatePreview()">
+                    <option value="mm/dd/yyyy" <?php echo $dateFormat == 'mm/dd/yyyy' ? 'selected' : ''; ?>>MM/DD/YYYY</option>
+                    <option value="dd/mm/yyyy" <?php echo $dateFormat == 'dd/mm/yyyy' ? 'selected' : ''; ?>>DD/MM/YYYY</option>
+                    <option value="yyyy-mm-dd" <?php echo $dateFormat == 'yyyy-mm-dd' ? 'selected' : ''; ?>>YYYY-MM-DD</option>
                 </select>
             </div>
 
-            <div class="toggle-container">
-                <span class="toggle-label">Show Week Numbers</span>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="weekNumbers" class="toggle-checkbox" checked>
-                    <label for="weekNumbers" class="toggle-slider"></label>
+            <div class="form-group">
+                <label for="timeFormat">Time Format</label>
+                <select id="timeFormat" onchange="updatePreview()">
+                    <option value="12" <?php echo $timeFormat == '12' ? 'selected' : ''; ?>>12-hour </option>
+                    <option value="24" <?php echo $timeFormat == '24' ? 'selected' : ''; ?>>24-hour </option>
+                </select>
+            </div>
+
+            <div id="livePreview" class="preview-box">
+                <div class="preview-item">
+                    <span class="preview-label">Date:</span>
+                    <span id="previewDate" class="preview-value"><?php echo $currentDate; ?></span>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-label">Time:</span>
+                    <span id="previewTime" class="preview-value"><?php echo $currentTime12; ?></span>
                 </div>
             </div>
 
-            <div class="toggle-container">
-                <span class="toggle-label">Auto-save Forms</span>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="autoSave" class="toggle-checkbox" checked>
-                    <label for="autoSave" class="toggle-slider"></label>
-                </div>
-            </div>
-        </div>
-
-        <div class="settings-card">
-            <h3>System Preferences</h3>
-            
-            <div class="toggle-container">
-                <span class="toggle-label">Show Dashboard Stats</span>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="showStats" class="toggle-checkbox" checked>
-                    <label for="showStats" class="toggle-slider"></label>
-                </div>
-            </div>
-
-            <div class="toggle-container">
-                <span class="toggle-label">Show Recent Activities</span>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="showActivities" class="toggle-checkbox" checked>
-                    <label for="showActivities" class="toggle-slider"></label>
-                </div>
-            </div>
-
-            <div class="toggle-container">
-                <span class="toggle-label">Confirm Before Actions</span>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="confirmActions" class="toggle-checkbox" checked>
-                    <label for="confirmActions" class="toggle-slider"></label>
-                </div>
-            </div>
-        </div>
-
-        <div class="settings-card">
-            <h3>Data Management</h3>
-            
-            <div style="margin-bottom: 15px;">
-                <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
-                    Manage your account data and settings
-                </p>
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button class="btn btn-secondary" onclick="clearCache()">
-                    <i class="fas fa-trash"></i> Clear Cache
-                </button>
-                
-                <button class="btn btn-secondary" onclick="clearHistory()">
-                    <i class="fas fa-history"></i> Clear Activity History
-                </button>
-                
-                <button class="btn btn-primary" onclick="saveSettings()">
-                    <i class="fas fa-save"></i> Save All Settings
+            <div class="button-group" style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveDisplayPreferences()">
+                    <i class="fas fa-save"></i> Save Settings
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // Store current sidebar mode
         let currentSidebarMode = '<?php echo $sidebarMode; ?>';
         
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Account Settings loaded. Current mode:', currentSidebarMode);
+            updatePreview();
             
-            // Initialize toggles
-            document.querySelectorAll('.toggle-checkbox').forEach(toggle => {
-                toggle.addEventListener('change', function() {
-                    console.log(this.id + ': ' + this.checked);
-                });
-            });
-            
-            // Listen for sidebar mode changes from Sidebar.php
             document.addEventListener('sidebarModeChanged', function(e) {
-                console.log('Sidebar mode changed to:', e.detail.mode);
                 currentSidebarMode = e.detail.mode;
-                
-                // Update button states
                 document.getElementById('manualModeBtn').classList.toggle('active', e.detail.mode === 'manual');
                 document.getElementById('autoHideModeBtn').classList.toggle('active', e.detail.mode === 'auto-hide');
-                
-                // Adjust content position
-                setTimeout(() => {
-                    adjustContentPosition();
-                }, 10);
+                setTimeout(() => adjustContentPosition(), 10);
             });
             
-            // Listen for sidebar auto-hide hover events
             document.addEventListener('sidebarAutoHide', function(e) {
-                console.log('Sidebar auto-hide hover:', e.detail.expanded);
-                
-                // Force immediate position adjustment on hover
-                setTimeout(() => {
-                    adjustContentPosition();
-                }, 10);
+                setTimeout(() => adjustContentPosition(), 10);
             });
             
-            // Listen for sidebar toggle events
             document.addEventListener('sidebarToggled', function(e) {
-                console.log('Sidebar manually toggled:', e.detail.collapsed);
-                
-                // Force immediate position adjustment
-                setTimeout(() => {
-                    adjustContentPosition();
-                }, 10);
+                setTimeout(() => adjustContentPosition(), 10);
             });
             
-            // Listen for global sidebar position updates
-            if (typeof window.updateAllPositions === 'function') {
-                // Hook into the global update function
-                const originalUpdateAllPositions = window.updateAllPositions;
-                window.updateAllPositions = function() {
-                    originalUpdateAllPositions();
-                    adjustContentPosition();
-                };
-            }
-            
-            // Initial position adjustment
-            setTimeout(() => {
-                adjustContentPosition();
-            }, 100);
-            
-            // Set up periodic check for sidebar changes
-            setInterval(() => {
-                const sidebar = document.getElementById('sidebar');
-                if (sidebar) {
-                    const currentClasses = sidebar.className;
-                    
-                    // Check if classes have changed
-                    if (window.lastSidebarClasses !== currentClasses) {
-                        window.lastSidebarClasses = currentClasses;
-                        adjustContentPosition();
-                    }
-                }
-            }, 100);
+            setTimeout(() => adjustContentPosition(), 100);
         });
 
-        function setSidebarMode(mode) {
-            console.log('Setting sidebar mode to:', mode);
+        function updatePreview() {
+            const dateFormat = document.getElementById('dateFormat').value;
+            const timeFormat = document.getElementById('timeFormat').value;
             
-            // Update button states immediately
+            const options = { timeZone: 'Asia/Manila' };
+            const now = new Date();
+            
+            const phTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+            
+            const month = String(phTime.getMonth() + 1).padStart(2, '0');
+            const day = String(phTime.getDate()).padStart(2, '0');
+            const year = phTime.getFullYear();
+            
+            let formattedDate;
+            switch(dateFormat) {
+                case 'mm/dd/yyyy':
+                    formattedDate = `${month}/${day}/${year}`;
+                    break;
+                case 'dd/mm/yyyy':
+                    formattedDate = `${day}/${month}/${year}`;
+                    break;
+                case 'yyyy-mm-dd':
+                    formattedDate = `${year}-${month}-${day}`;
+                    break;
+                default:
+                    formattedDate = `${month}/${day}/${year}`;
+            }
+            
+            let hours = phTime.getHours();
+            let minutes = String(phTime.getMinutes()).padStart(2, '0');
+            let formattedTime;
+            
+            if (timeFormat === '12') {
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                let displayHour = hours % 12;
+                displayHour = displayHour ? displayHour : 12;
+                formattedTime = `${String(displayHour).padStart(2, '0')}:${minutes} ${ampm}`;
+            } else {
+                formattedTime = `${String(hours).padStart(2, '0')}:${minutes}`;
+            }
+            
+            document.getElementById('previewDate').textContent = formattedDate;
+            document.getElementById('previewTime').textContent = formattedTime;
+        }
+
+        function setSidebarMode(mode) {
             document.getElementById('manualModeBtn').classList.toggle('active', mode === 'manual');
             document.getElementById('autoHideModeBtn').classList.toggle('active', mode === 'auto-hide');
             
-            // Save to server
             saveSidebarModeToServer(mode);
             
-            // Apply immediately using Sidebar.php's global function
             if (typeof window.changeSidebarMode === 'function') {
                 window.changeSidebarMode(mode);
             } else {
-                // Fallback: Trigger sidebar mode change
                 applySidebarMode(mode);
             }
             
-            // Force immediate position adjustment
-            setTimeout(() => {
-                adjustContentPosition();
-            }, 50);
-            
-            // Show success message
+            setTimeout(() => adjustContentPosition(), 50);
             showSuccessMessage('Sidebar mode changed to ' + (mode === 'manual' ? 'Manual Toggle' : 'Auto-Hide on Hover'));
         }
 
         function applySidebarMode(mode) {
             const sidebar = document.getElementById('sidebar');
+            if (!sidebar) return;
             
-            if (!sidebar) {
-                console.error('Sidebar not found!');
-                return;
-            }
-            
-            console.log('Applying mode:', mode);
-            
-            // Remove all mode classes first
             sidebar.classList.remove('auto-hide', 'collapsed');
             
             if (mode === 'manual') {
-                // Manual mode - check if sidebar should be collapsed
                 const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-                console.log('Manual mode, collapsed state:', isCollapsed);
+                if (isCollapsed) sidebar.classList.add('collapsed');
                 
-                if (isCollapsed) {
-                    sidebar.classList.add('collapsed');
-                }
-                
-                // Show menu button
                 const menuButton = document.querySelector('.menu-toggle');
-                if (menuButton) {
-                    menuButton.style.display = 'flex';
-                }
+                if (menuButton) menuButton.style.display = 'flex';
                 
-                // Dispatch toggle event for manual mode
                 const toggleEvent = new CustomEvent('sidebarToggled', { 
-                    detail: { 
-                        collapsed: isCollapsed,
-                        mode: 'manual'
-                    }
+                    detail: { collapsed: isCollapsed, mode: 'manual' }
                 });
                 document.dispatchEvent(toggleEvent);
                 
             } else if (mode === 'auto-hide') {
-                // Auto-hide mode - always collapsed initially
                 sidebar.classList.add('auto-hide');
                 
-                // Hide menu button in auto-hide mode
                 const menuButton = document.querySelector('.menu-toggle');
-                if (menuButton) {
-                    menuButton.style.display = 'none';
-                }
+                if (menuButton) menuButton.style.display = 'none';
                 
-                // Dispatch auto-hide event for collapsed state
                 const autoHideEvent = new CustomEvent('sidebarAutoHide', { 
                     detail: { expanded: false }
                 });
                 document.dispatchEvent(autoHideEvent);
             }
             
-            // Update current mode
             currentSidebarMode = mode;
             
-            // Dispatch mode changed event
             const modeEvent = new CustomEvent('sidebarModeChanged', { 
-                detail: { 
-                    mode: mode,
-                    collapsed: sidebar.classList.contains('collapsed') || sidebar.classList.contains('auto-hide')
-                }
+                detail: { mode: mode }
             });
             document.dispatchEvent(modeEvent);
             
-            // Force immediate position adjustment
             adjustContentPosition();
         }
 
-        // NEW FUNCTION: Adjust content position based on sidebar state
         function adjustContentPosition() {
             const sidebar = document.getElementById('sidebar');
             const content = document.querySelector('.account-content');
@@ -638,103 +519,103 @@ $sidebarMode = isset($_SESSION['sidebar_mode']) ? $_SESSION['sidebar_mode'] : 'm
             const isCollapsed = sidebar.classList.contains('collapsed');
             const isHovered = sidebar.matches(':hover') && isAutoHide;
             
-            // Calculate sidebar width
             let sidebarWidth;
-            
             if (isAutoHide) {
-                if (isHovered) {
-                    sidebarWidth = 240; // Expanded on hover
-                } else {
-                    sidebarWidth = 70; // Collapsed normally
-                }
+                sidebarWidth = isHovered ? 240 : 70;
             } else {
-                if (isCollapsed) {
-                    sidebarWidth = 70;
-                } else {
-                    sidebarWidth = 240;
-                }
+                sidebarWidth = isCollapsed ? 70 : 240;
             }
             
-            console.log('Adjusting content position:', {
-                isAutoHide,
-                isCollapsed,
-                isHovered,
-                sidebarWidth
-            });
-            
-            // Update content position immediately
             content.style.marginLeft = sidebarWidth + 'px';
             content.style.width = `calc(100% - ${sidebarWidth}px)`;
-            content.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
             
-            // Also update navbar if exists
             const navbar = document.getElementById('navbar');
-            if (navbar) {
-                navbar.style.left = sidebarWidth + 'px';
-            }
-            
-            // Force a reflow to ensure CSS updates immediately
-            void content.offsetWidth;
+            if (navbar) navbar.style.left = sidebarWidth + 'px';
         }
 
         function saveSidebarModeToServer(mode) {
             fetch('AccountSettings.php', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: 'sidebar_mode=' + mode
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    console.log('Sidebar mode saved to server:', mode);
                     localStorage.setItem('sidebarMode', mode);
-                } else {
-                    console.error('Failed to save to server:', data.message);
+                }
+            })
+            .catch(error => console.error('Error saving sidebar mode:', error));
+        }
+
+        function saveDisplayPreferences() {
+            const formData = new FormData();
+            formData.append('save_display_preferences', 'true');
+            formData.append('date_format', document.getElementById('dateFormat').value);
+            formData.append('time_format', document.getElementById('timeFormat').value);
+            
+            fetch('AccountSettings.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessMessage('Display preferences saved successfully!');
+                    
+                    const displayEvent = new CustomEvent('displayPreferencesChanged', {
+                        detail: {
+                            date_format: document.getElementById('dateFormat').value,
+                            time_format: document.getElementById('timeFormat').value
+                        },
+                        bubbles: true
+                    });
+                    document.dispatchEvent(displayEvent);
+                    
+                    localStorage.setItem('displayPreferences', JSON.stringify({
+                        date_format: document.getElementById('dateFormat').value,
+                        time_format: document.getElementById('timeFormat').value
+                    }));
                 }
             })
             .catch(error => {
-                console.error('Error saving sidebar mode:', error);
-                localStorage.setItem('sidebarMode', mode);
+                console.error('Error saving display preferences:', error);
+                showErrorMessage('Error saving preferences');
             });
         }
 
         function showSuccessMessage(message) {
             const successMessage = document.getElementById('successMessage');
-            const messageText = successMessage.querySelector('span');
+            const messageText = document.getElementById('successMessageText');
             
             messageText.textContent = message;
             successMessage.classList.add('show');
             
+            setTimeout(() => successMessage.classList.remove('show'), 4000);
+        }
+
+        function showErrorMessage(message) {
+            const successMessage = document.getElementById('successMessage');
+            const messageText = document.getElementById('successMessageText');
+            
+            messageText.textContent = message;
+            successMessage.style.backgroundColor = '#fee2e2';
+            successMessage.style.color = '#991b1b';
+            successMessage.style.borderColor = '#fecaca';
+            successMessage.classList.add('show');
+            
             setTimeout(() => {
                 successMessage.classList.remove('show');
+                successMessage.style.backgroundColor = '#d1fae5';
+                successMessage.style.color = '#347433';
+                successMessage.style.borderColor = '#a7f3d0';
             }, 4000);
         }
-
-        function saveSettings() {
-            const dateFormat = document.getElementById('dateFormat').value;
-            const weekNumbers = document.getElementById('weekNumbers').checked;
-            const autoSave = document.getElementById('autoSave').checked;
-            
-            showSuccessMessage('All settings saved successfully!');
-        }
-
-        function clearCache() {
-            if (confirm('Clear all cache data? This will reset your sidebar preferences.')) {
-                localStorage.clear();
-                showSuccessMessage('Cache cleared successfully!');
-            }
-        }
-
-        function clearHistory() {
-            if (confirm('Clear all activity history?')) {
-                showSuccessMessage('Activity history cleared!');
-            }
-        }
         
-        // Make the function available globally
         window.adjustContentPosition = adjustContentPosition;
+        window.updatePreview = updatePreview;
+        window.saveDisplayPreferences = saveDisplayPreferences;
+        window.setSidebarMode = setSidebarMode;
     </script>
 </body>
 </html>
